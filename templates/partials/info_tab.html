@@ -7,45 +7,9 @@
 </div>
 
 <script>
-  let MAX_POINTS = 30;
-  const chart = new Chart(document.getElementById('chart').getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "CPU %",
-          data: [],
-          borderColor: "rgba(54, 162, 235, 1)",
-          backgroundColor: "rgba(54, 162, 235, 0.2)",
-          borderWidth: 2,
-          tension: 0.3
-        },
-        {
-          label: "Memory %",
-          data: [],
-          borderColor: "rgba(255, 206, 86, 1)",
-          backgroundColor: "rgba(255, 206, 86, 0.2)",
-          borderWidth: 2,
-          tension: 0.3
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      animation: false,
-      scales: {
-        y: {
-          min: 0,
-          max: 100
-        }
-      }
-    }
-  });
-
   async function loadInfo() {
     try {
-      const res = await safeFetch("/system/api?_=" + Date.now());
+      const res = await safeFetch("/system/api/info");
       const data = await res.json();
 
       // Populate list group
@@ -77,8 +41,6 @@
         <li class="list-group-item">Uptime: ${formatUptime(data.uptime)}</li>
         <li class="list-group-item">Platform: ${data.platform}</li>
       `;
-
-      updateChart(data.cpu_percent, data.memory_percent);
     } catch (err) {
       // alert("Error fetching system info: " + err);
       console.error("Error fetching system info:", err.message);
@@ -90,27 +52,6 @@
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return `${h}h ${m}m`;
-  }
-
-  let timeCounter = 0;
-
-  function updateChart(cpu, mem) {
-    const labels = chart.data.labels;
-    const cpuData = chart.data.datasets[0].data;
-    const memData = chart.data.datasets[1].data;
-
-    if (labels.length >= MAX_POINTS) {
-      labels.shift();
-      cpuData.shift();
-      memData.shift();
-    }
-
-    labels.push(timeCounter.toString());
-    cpuData.push(cpu);
-    memData.push(mem);
-
-    timeCounter++;
-    chart.update();
   }
 
   loadInfo();

@@ -4,7 +4,7 @@ from system.preferences import prefs
 
 system_bp = Blueprint("system", __name__)
 
-@system_bp.route("/api")
+@system_bp.route("/api/info")
 def api_sysinfo():
     return jsonify(get_system_info())
 
