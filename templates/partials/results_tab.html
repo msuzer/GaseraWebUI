@@ -15,6 +15,15 @@
 	</div>
 </div>
 
+<div class="row justify-content-center mb-3">
+  <div class="col-md-10">
+    <div class="card card-body" id="trackTogglePanel">
+      <h6 class="mb-3">Toggle Gas Components</h6>
+      <div id="trackToggles" class="d-flex flex-wrap gap-3"></div>
+    </div>
+  </div>
+</div>
+
 <div class="row mb-3 justify-content-center">
 	<div class="col-md-6">
 		<label for="chartInterval" class="form-label">Chart Update Interval (sec)</label>
@@ -28,29 +37,90 @@
 <script>
     let logEntries = [];
     let chartData = [];
+	let trackVisibility = {};
 
     const ctx = document.getElementById('liveChart').getContext('2d');
     const liveChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: []
-      },
-      options: {
-        responsive: true,
-        animation: false,
-        scales: {
-          x: { title: { display: true, text: 'Time' } },
-          y: { title: { display: true, text: 'PPM' }, beginAtZero: true }
-        },
-		plugins: {
-			zoom: {
-				zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x', }, // zoom horizontally
-				pan: { enabled: true, mode: 'x', }
+		type: 'line',
+		data: {
+			labels: [],
+			datasets: []
+		},
+		options: {
+			responsive: true,
+			animation: false,
+			scales: {
+				x: { title: { display: true, text: 'Time' } },
+				y: { title: { display: true, text: 'PPM' }, beginAtZero: true }
+			},
+			plugins: {
+				zoom: {
+					zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+					pan: { enabled: true, mode: 'x' }
+				},
+				legend: {
+					onClick: function (e, legendItem, legend) {
+						const index = legendItem.datasetIndex;
+						const chart = legend.chart;
+						const label = chart.data.datasets[index].label;
+
+						// Toggle visibility
+						const meta = chart.getDatasetMeta(index);
+						meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+						chart.update();
+
+						trackVisibility[label] = chart.isDatasetVisible(index);
+
+						// update server side config file
+						fetch("/gasera/api/settings/update", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ track_visibility: trackVisibility })
+						});
+					}
+				}
 			}
 		}
-      }
     });
+
+	function renderTrackToggles() {
+		const container = document.getElementById("trackToggles");
+		container.innerHTML = ""; // clear before render
+
+		liveChart.data.datasets.forEach((ds, i) => {
+			const label = ds.label;
+			const id = `track-toggle-${i}`;
+			const checked = !ds.hidden;
+
+			const div = document.createElement("div");
+			div.classList.add("form-check", "form-switch");
+
+			div.innerHTML = `
+				<input class="form-check-input" type="checkbox" role="switch" id="${id}" ${checked ? 'checked' : ''}>
+				<div style="display: flex; align-items: center; gap: 6px;">
+					<span style="width: 12px; height: 12px; background: ${ds.borderColor}; display: inline-block; border-radius: 2px;"></span>
+					<label class="form-check-label" for="${id}" style="color: ${ds.borderColor}; margin: 0;">${label}</label>
+				</div>
+				`;
+
+			div.querySelector("input").addEventListener("change", (e) => {
+			const visible = e.target.checked;
+			liveChart.data.datasets[i].hidden = !visible;
+			trackVisibility[label] = visible;
+			liveChart.update();
+
+			// Save preference
+			fetch("/gasera/api/settings/update", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ track_visibility: trackVisibility })
+			});
+			});
+
+			container.appendChild(div);
+		});
+	}
+
 	
 	function fetchData() {
 		safeFetch("/gasera/api/data/dummy").then(res => res.json()).then(data => {
@@ -73,6 +143,7 @@
 					liveChart.data.datasets.push({
 						label: c.label,  // e.g., "Methane (CH₄)"
 						data: [c.ppm],
+						hidden: trackVisibility[c.label] === false,  // stored as false = hidden
 						borderColor: c.color || undefined,
 						backgroundColor: c.color || undefined,
 						tension: 0.3
@@ -154,9 +225,11 @@
 			const interval = data.chart_update_interval || 5000;
 			document.getElementById("chartInterval").value = interval;
 			setChartUpdateInterval(interval);
+			trackVisibility = data.track_visibility || {};
 	});
 
 	fetchData();
 	// dataFetchTimers.push(setInterval(fetchData, 5000));
+	setTimeout(renderTrackToggles, 1000); // Give chart a second to initialize datasets
 
 </script>

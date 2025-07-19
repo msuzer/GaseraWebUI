@@ -2,7 +2,8 @@ import time
 import threading
 from gpio.motor_control import motor
 from gpio.gpio_control import gpio
-from system.preferences import prefs, KEY_MEASUREMENT_DURATION
+from system.preferences import prefs
+from system.preferences import KEY_MEASUREMENT_DURATION
 from config.constants import TRIGGER_PIN, BUZZER_PIN, DEBOUNCE_INTERVAL, MEASUREMENT_CHECK_INTERVAL, DEFAULT_MEASUREMENT_DURATION
 from .async_timer_bank import AsyncTimerBank
 from .controller import GaseraController

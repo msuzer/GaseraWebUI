@@ -5,6 +5,7 @@ from pathlib import Path
 KEY_CHART_UPDATE_INTERVAL = "chart_update_interval"
 KEY_MEASUREMENT_DURATION = "measurement_duration"
 KEY_MOTOR_TIMEOUT = "motor_timeout"
+KEY_TRACK_VISIBILITY = "track_visibility"
 
 class Preferences:
     def __init__(self, filename="config/user_prefs.json"):
@@ -72,15 +73,19 @@ class Preferences:
     def set_bool(self, key, value: bool):
         self.set(key, bool(value))
 
+    def get_dict(self, key, default=None) -> dict:
+        value = self.data.get(key, default or {})
+        return dict(value) if isinstance(value, dict) else {}
+
     def all(self):
         return dict(self.data)
-
+    
     def as_dict(self):
         return self.all()
 
     def update_from_dict(self, updates: dict):
         for key, value in updates.items():
-            if key in [KEY_MEASUREMENT_DURATION, KEY_MOTOR_TIMEOUT, KEY_CHART_UPDATE_INTERVAL]:
+            if key in [KEY_MEASUREMENT_DURATION, KEY_MOTOR_TIMEOUT, KEY_CHART_UPDATE_INTERVAL, KEY_TRACK_VISIBILITY]:
                 self.set(key, value)
 
 prefs = Preferences()
