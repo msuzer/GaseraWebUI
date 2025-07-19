@@ -1,0 +1,95 @@
+<div class="tab-pane fade show active" id="acon">
+	<div class="row justify-content-center mb-4">
+		<div class="col-md-10">
+			<div class="card shadow-sm">
+				<div class="card-header d-flex justify-content-between align-items-center">
+					<span>Live Measurements</span>
+					<div>
+						<button class="btn btn-sm btn-outline-primary me-2" onclick="downloadImage()">Save Image</button>
+						<button class="btn btn-sm btn-outline-success" onclick="downloadCSV()">Save CSV</button>
+					</div>
+				</div>
+				<div class="card-body">
+					<canvas id="liveChart" height="150"></canvas>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+    let logEntries = [];
+    let chartData = [];
+
+    const ctx = document.getElementById('liveChart').getContext('2d');
+    const liveChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: []
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { title: { display: true, text: 'PPM' }, beginAtZero: true }
+        },
+		plugins: {
+			zoom: {
+				zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x', }, // zoom horizontally
+				pan: { enabled: true, mode: 'x', }
+			}
+		}
+      }
+    });
+	
+	function fetchData() {
+		safeFetch("/gasera/api/data/dummy").then(res => res.json()).then(data => {
+			const label = new Date(data.timestamp * 1000).toLocaleTimeString();
+
+			// Loop through gas components
+			data.components.forEach((c) => {
+				const dataset = liveChart.data.datasets.find(d => d.label === c.label);
+				if (dataset) {
+					dataset.data.push(c.ppm);
+					if (dataset.data.length > 100) dataset.data.shift();
+				} else {
+					liveChart.data.datasets.push({
+						label: c.label,  // e.g., "Methane (CH₄)"
+						data: [c.ppm],
+						borderColor: c.color || undefined,
+						backgroundColor: c.color || undefined,
+						tension: 0.3
+					});
+				}
+			});
+
+			liveChart.data.labels.push(label);
+			if (liveChart.data.labels.length > 100) liveChart.data.labels.shift();
+
+			liveChart.update();
+		});
+	}
+
+	function downloadImage() {
+      const link = document.createElement('a');
+      link.href = liveChart.toBase64Image();
+      link.download = 'gasera_chart.png';
+      link.click();
+    }
+
+    function downloadCSV() {
+      let csv = 'Time,Value\n';
+      csv += chartData.map(row => `${row.time},${row.value}`).join("\n");
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'gasera_data.csv';
+      link.click();
+    }
+	
+	fetchData();
+	dataFetchTimers.push(setInterval(fetchData, 5000));
+
+</script>

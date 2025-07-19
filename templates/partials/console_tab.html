@@ -1,0 +1,123 @@
+<div class="accordion" id="commandAccordion"></div>
+
+<h4 class="mt-4">Command Log</h4>
+<div class="d-flex gap-2 mb-2">
+  <button class="btn btn-sm btn-outline-secondary" onclick="clearLog()">Clear</button>
+  <button class="btn btn-sm btn-outline-primary" onclick="saveLog()">Save as File</button>
+</div>
+<pre id="commandLog" class="bg-dark text-light p-3" style="height: 300px; overflow-y: auto; font-size: 0.85rem;"></pre>
+
+<script src="/gasera/command_map.js"></script>
+<script>
+  let autoCommands = [];
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const accordion = document.getElementById("commandAccordion");
+
+    const grouped = {};
+    for (const [cmd, meta] of Object.entries(commandMap)) {
+      if (!grouped[meta.section]) grouped[meta.section] = [];
+      grouped[meta.section].push({ name: cmd, ...meta });
+
+      if (meta.auto === true) {
+        autoCommands.push(cmd);
+      }
+    }
+
+    let index = 0;
+    for (const [section, commands] of Object.entries(grouped)) {
+      const sectionId = "section" + index;
+      const card = document.createElement("div");
+      card.className = "accordion-item";
+      card.innerHTML = `
+        <h2 class="accordion-header" id="heading${index}">
+          <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#${sectionId}">
+            ${section}
+          </button>
+        </h2>
+        <div id="${sectionId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#commandAccordion">
+          <div class="accordion-body" id="body-${sectionId}"></div>
+        </div>
+      `;
+      accordion.appendChild(card);
+
+      const body = card.querySelector(`#body-${sectionId}`);
+      for (const cmd of commands) {
+        const cmdId = `cmd-${cmd.name}`;
+        const hasArgs = Array.isArray(cmd.args) && cmd.args.length > 0;
+        const tooltip = cmd.help || cmd.description || "";
+        const inputGroup = [];
+
+        if (hasArgs) {
+          inputGroup.push(...cmd.args.map((arg, i) =>
+            `<input type="text" class="form-control form-control-sm w-auto d-inline-block" placeholder="${arg}" id="${cmdId}-arg${i}">`
+          ));
+        }
+
+        const buttonClass = `btn btn-${cmd.style || 'primary'} btn-sm px-3`;
+        const button = `<button class="${buttonClass}" title="${tooltip}" onclick="sendWithArgs('${cmd.name}')">${cmd.title}</button>`;
+
+        body.innerHTML += `
+          <div class="mb-3" title="${tooltip}">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              ${inputGroup.join(" ")}
+              ${button}
+            </div>
+          </div>
+        `;
+      }
+      index++;
+    }
+
+    if (autoCommands.length > 0) {
+      setInterval(() => {
+        for (const cmd of autoCommands) {
+          sendCommand(cmd);
+        }
+      }, 10000); // poll every 10s
+    }
+  });
+
+  function sendWithArgs(cmd) {
+    const cmdMeta = commandMap[cmd];
+    const args = (cmdMeta.args || []).map((_, i) => {
+      const input = document.getElementById(`cmd-${cmd}-arg${i}`);
+      return input?.value.trim() || "";
+    });
+    sendCommand(cmd, args);
+  }
+
+  function sendCommand(cmd, args = []) {
+    safeFetch("/gasera/api/dispatch/instruction", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cmd, args })
+    })
+    .then(res => res.json())
+    .then(data => logResponse(cmd, data))
+    .catch(err => logResponse(cmd, { string: "Error: " + err }));
+  }
+
+  function logResponse(cmd, data) {
+    const log = document.getElementById("commandLog");
+    const time = new Date().toLocaleTimeString();
+    const msg = `[${time}] ${cmd}: ${data.string || JSON.stringify(data)}\n`;
+    log.textContent += msg;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById("commandLog").textContent = "";
+  }
+
+  function saveLog() {
+    const text = document.getElementById("commandLog").textContent;
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gasera_log.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>

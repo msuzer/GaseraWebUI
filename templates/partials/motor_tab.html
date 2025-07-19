@@ -1,0 +1,49 @@
+<div class="row">
+    <div class="col-md-6"> <!-- Motor 0 -->
+        <div class="card text-bg-light h-100">
+            <div class="card-body d-flex flex-column">
+            <h5 class="card-title">Motor 0</h5>
+            <p class="card-text">Control jog movement of Motor 0.</p>
+                <div class="btn-group mb-3" role="group">
+                    <button class="btn btn-primary"
+                            onmousedown="jog(0, 'cw', 'start')"
+                            onmouseup="jog(0, 'cw', 'stop')">CW</button>
+                    <button class="btn btn-secondary"
+                            onmousedown="jog(0, 'ccw', 'start')"
+                            onmouseup="jog(0, 'ccw', 'stop')">CCW</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6"> <!-- Motor 1 -->
+        <div class="card text-bg-light h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">Motor 1</h5>
+                <p class="card-text">Control jog movement of Motor 1.</p>
+                <div class="btn-group mb-3" role="group">
+                    <button class="btn btn-primary"
+                            onmousedown="jog(1, 'cw', 'start')"
+                            onmouseup="jog(1, 'cw', 'stop')">CW</button>
+                    <button class="btn btn-secondary"
+                            onmousedown="jog(1, 'ccw', 'start')"
+                            onmouseup="jog(1, 'ccw', 'stop')">CCW</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function jog(motorId, direction, action) {
+        safeFetch(`/gpio/motor/jog/${action}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `motor_id=${motorId}&direction=${direction}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) alert("Error: " + data.error);
+        });
+    }
+
+</script>
