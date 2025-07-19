@@ -16,6 +16,9 @@ gasera_bp = Blueprint("gasera", __name__)
 measurement = MeasurementController(gasera)
 dispatcher = GaseraCommandDispatcher(gasera)
 
+from system.preferences import prefs, KEY_MEASUREMENT_DURATION
+prefs.register_callback(KEY_MEASUREMENT_DURATION, measurement.set_timeout)
+
 @gasera_bp.route("/command_map.js")
 def serve_command_map():
     filtered = {
@@ -75,24 +78,13 @@ def gasera_api_data_dummy():
 
 @gasera_bp.route("/api/settings/read", methods=["GET"])
 def gasera_api_read_settings():
-    return jsonify({
-        KEY_MEASUREMENT_DURATION: measurement.get_timeout(),
-        KEY_MOTOR_TIMEOUT: motor.get_timeout(),
-        KEY_CHART_UPDATE_INTERVAL: prefs.get_int(KEY_CHART_UPDATE_INTERVAL, DEFAULT_CHART_UPDATE_DURATION)
-    })
+    return jsonify(prefs.as_dict())
 
 @gasera_bp.route("/api/settings/update", methods=["POST"])
 def gasera_api_update_settings_all():
     data = request.get_json(force=True)
     try:
         prefs.update_from_dict(data)
-
-        with measurement.lock:
-            if KEY_MEASUREMENT_DURATION in data:
-                measurement.set_timeout(int(data[KEY_MEASUREMENT_DURATION]))
-            if KEY_MOTOR_TIMEOUT in data:
-                motor.set_timeout(int(data[KEY_MOTOR_TIMEOUT]))
-
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 400

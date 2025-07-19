@@ -30,8 +30,7 @@ class MotorController:
         self._threads = {}
 
     def set_timeout(self, seconds):
-        self.timeout_sec = float(seconds or DEFAULT_MOTOR_TIMEOUT)
-        prefs.set(KEY_MOTOR_TIMEOUT, self.timeout_sec)
+        self.timeout_sec = int(seconds or DEFAULT_MOTOR_TIMEOUT)
 
     def get_timeout(self):
         return self.timeout_sec
@@ -121,6 +120,9 @@ class MotorController:
 
 # lazy singleton instance
 motor = MotorController()
+
+from system.preferences import prefs, KEY_MOTOR_TIMEOUT
+prefs.register_callback(KEY_MOTOR_TIMEOUT, motor.set_timeout)
 
 # stop both motors on boot
 motor.stop_both()

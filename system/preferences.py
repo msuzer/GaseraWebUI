@@ -8,6 +8,7 @@ KEY_MOTOR_TIMEOUT = "motor_timeout"
 
 class Preferences:
     def __init__(self, filename="config/user_prefs.json"):
+        self._callbacks = {}
         self.file = Path(filename)
         self.data = {}
         self._load()
@@ -24,6 +25,11 @@ class Preferences:
     def _save(self):
         self.file.parent.mkdir(parents=True, exist_ok=True)
         self.file.write_text(json.dumps(self.data, indent=2))
+
+    def register_callback(self, key, callback):
+        if key not in self._callbacks:
+            self._callbacks[key] = []
+        self._callbacks[key].append(callback)
 
     def get(self, key, default=None):
         return self.data.get(key, default)
@@ -47,6 +53,12 @@ class Preferences:
     def set(self, key, value):
         self.data[key] = value
         self._save()
+        if key in self._callbacks:
+            for cb in self._callbacks[key]:
+                try:
+                    cb(value)
+                except Exception as e:
+                    print(f"[WARN] Callback for '{key}' failed: {e}")
 
     def set_int(self, key, value: int):
         self.set(key, int(value))

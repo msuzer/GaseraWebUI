@@ -1,5 +1,5 @@
 {
   "measurement_duration": 640,
-  "motor_timeout": 8.0,
+  "motor_timeout": 8,
   "chart_update_interval": 3
 }

@@ -32,8 +32,7 @@ class MeasurementController:
         self._last_trigger_state = 1  # assume HIGH at rest
 
     def set_timeout(self, seconds):
-        self.measurement_duration_sec = seconds
-        prefs.set(KEY_MEASUREMENT_DURATION, seconds)
+        self.measurement_duration_sec = int(seconds or DEFAULT_MEASUREMENT_DURATION)
 
     def get_timeout(self):
         return self.measurement_duration_sec
