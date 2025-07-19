@@ -1,18 +1,26 @@
-<div class="tab-pane fade show active" id="acon">
-	<div class="row justify-content-center mb-4">
-		<div class="col-md-10">
-			<div class="card shadow-sm">
-				<div class="card-header d-flex justify-content-between align-items-center">
-					<span>Live Measurements</span>
-					<div>
-						<button class="btn btn-sm btn-outline-primary me-2" onclick="downloadImage()">Save Image</button>
-						<button class="btn btn-sm btn-outline-success" onclick="downloadCSV()">Save CSV</button>
-					</div>
-				</div>
-				<div class="card-body">
-					<canvas id="liveChart" height="150"></canvas>
+<div class="row justify-content-center mb-4">
+	<div class="col-md-10">
+		<div class="card shadow-sm">
+			<div class="card-header d-flex justify-content-between align-items-center">
+				<span>Live Measurements</span>
+				<div>
+					<button class="btn btn-sm btn-outline-primary me-2" onclick="downloadImage()">Save Image</button>
+					<button class="btn btn-sm btn-outline-success" onclick="downloadCSV()">Save CSV</button>
 				</div>
 			</div>
+			<div class="card-body">
+				<canvas id="liveChart" height="150"></canvas>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="row mb-3 justify-content-center">
+	<div class="col-md-6">
+		<label for="chartInterval" class="form-label">Chart Update Interval (sec)</label>
+		<div class="input-group">
+			<input type="number" min="1" max="60" step="1" id="chartInterval" class="form-control" />
+			<button class="btn btn-outline-primary" onclick="applyChartInterval()">Apply</button>
 		</div>
 	</div>
 </div>
@@ -46,7 +54,14 @@
 	
 	function fetchData() {
 		safeFetch("/gasera/api/data/dummy").then(res => res.json()).then(data => {
-			const label = new Date(data.timestamp * 1000).toLocaleTimeString();
+			// const label = new Date(data.timestamp * 1000).toLocaleTimeString();
+
+			const label = new Date(data.timestamp * 1000).toLocaleTimeString('en-GB', {
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit',
+				hour12: false
+			});
 
 			// Loop through gas components
 			data.components.forEach((c) => {
@@ -73,23 +88,75 @@
 	}
 
 	function downloadImage() {
-      const link = document.createElement('a');
-      link.href = liveChart.toBase64Image();
-      link.download = 'gasera_chart.png';
-      link.click();
+		const link = document.createElement('a');
+		link.href = liveChart.toBase64Image();
+		const now = new Date();
+		const timestamp = now.toISOString().replace(/[:T-]/g, '_').split('.')[0]; // e.g., 2025_07_19_14_32_01
+		link.download = `gasera_chart_${timestamp}.png`;
+		link.click();
     }
 
-    function downloadCSV() {
-      let csv = 'Time,Value\n';
-      csv += chartData.map(row => `${row.time},${row.value}`).join("\n");
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'gasera_data.csv';
-      link.click();
-    }
+	function downloadCSV() {
+		if (liveChart.data.datasets.length === 0) return;
+
+		let csv = 'Time,' + liveChart.data.datasets.map(d => d.label).join(',') + '\n';
+		for (let i = 0; i < liveChart.data.labels.length; i++) {
+			const row = [liveChart.data.labels[i]];
+			liveChart.data.datasets.forEach(ds => row.push(ds.data[i] ?? ""));
+			csv += row.join(',') + '\n';
+		}
+
+		const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8' });
+		const link = document.createElement('a');
+		link.href = URL.createObjectURL(blob);
+		const now = new Date();
+		const timestamp = now.toISOString().replace(/[:T-]/g, '_').split('.')[0]; // e.g., 2025_07_19_14_32_01
+		link.download = `gasera_data_${timestamp}.csv`;
+		link.click();
+	}
 	
+	let updateTimer = null;
+	let updateInterval = 5000;
+
+	function setChartUpdateInterval(ms) {
+		if (updateTimer) clearInterval(updateTimer);
+		updateInterval = 1000 * ms;
+		updateTimer = setInterval(fetchData, updateInterval);
+	}
+
+	function applyChartInterval() {
+		const value = parseInt(document.getElementById("chartInterval").value);
+		if (isNaN(value) || value < 1 || value > 60) {
+			alert("Please enter a value between 1 and 60 sec.");
+			return;
+		}
+
+		fetch("/gasera/api/settings/update", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ chart_update_interval: value })
+		})
+		.then(res => res.json())
+		.then(data => {
+			if (data.ok) {
+				setChartUpdateInterval(value);
+				alert("Chart interval updated.");
+			} else {
+				alert("Error: " + data.error);
+			}
+		});
+	}
+
+	// Initial fetch
+	fetch("/gasera/api/settings/read")
+		.then(res => res.json())
+		.then(data => {
+			const interval = data.chart_update_interval || 5000;
+			document.getElementById("chartInterval").value = interval;
+			setChartUpdateInterval(interval);
+	});
+
 	fetchData();
-	dataFetchTimers.push(setInterval(fetchData, 5000));
+	// dataFetchTimers.push(setInterval(fetchData, 5000));
 
 </script>

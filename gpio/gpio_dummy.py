@@ -12,8 +12,8 @@ class GPIOController:
         self.pin_states = {}
 
     def read(self, pin_name):
-        self.pin_states[PIN_MAP[pin_name]] = 0
-        return 0
+        self.pin_states[PIN_MAP[pin_name]] = 1
+        return 1
 
     def set(self, pin_name):
         self.pin_states[PIN_MAP[pin_name]] = 1

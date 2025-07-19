@@ -1,10 +1,13 @@
 from flask import Blueprint, Response, json, render_template, request, jsonify
 from gasera import GaseraCommandDispatcher
 from gasera import MeasurementController
+from system.preferences import prefs
+from system.preferences import (KEY_CHART_UPDATE_INTERVAL, KEY_MEASUREMENT_DURATION, KEY_MOTOR_TIMEOUT)
 from .controller import gasera
 from .commands import GASERA_COMMANDS
 from gpio.motor_control import motor
 from datetime import datetime
+from config.constants import DEFAULT_CHART_UPDATE_DURATION
 import random, time
 
 gasera_bp = Blueprint("gasera", __name__)
@@ -37,10 +40,7 @@ def gasera_api_abort_measurement():
 
 @gasera_bp.route("/api/measurement/state")
 def gasera_api_measurement_state():
-    return jsonify({
-        "state": measurement.state,
-        "last_event": "no last event"  # or None, if not present
-    })
+    return jsonify(measurement.get_status())
 
 @gasera_bp.route("/api/connection_status")
 def gasera_api_connection_status():
@@ -73,22 +73,26 @@ def gasera_api_data_dummy():
         "components": components
     })
 
-@gasera_bp.route("/api/settings/read")
+@gasera_bp.route("/api/settings/read", methods=["GET"])
 def gasera_api_read_settings():
     return jsonify({
-        "duration": measurement.get_timeout(),
-        "motor_timeout": motor.get_timeout()
+        KEY_MEASUREMENT_DURATION: measurement.get_timeout(),
+        KEY_MOTOR_TIMEOUT: motor.get_timeout(),
+        KEY_CHART_UPDATE_INTERVAL: prefs.get_int(KEY_CHART_UPDATE_INTERVAL, DEFAULT_CHART_UPDATE_DURATION)
     })
 
 @gasera_bp.route("/api/settings/update", methods=["POST"])
-def gasera_api_update_settings():
+def gasera_api_update_settings_all():
     data = request.get_json(force=True)
     try:
+        prefs.update_from_dict(data)
+
         with measurement.lock:
-            if "duration" in data:
-                measurement.set_timeout(int(data["duration"]))
-            if "motor_timeout" in data:
-                motor.set_timeout(int(data["motor_timeout"]))
+            if KEY_MEASUREMENT_DURATION in data:
+                measurement.set_timeout(int(data[KEY_MEASUREMENT_DURATION]))
+            if KEY_MOTOR_TIMEOUT in data:
+                motor.set_timeout(int(data[KEY_MOTOR_TIMEOUT]))
+
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 400

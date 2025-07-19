@@ -22,7 +22,10 @@ class MotorController:
             "0": MOTOR0_LIMIT_PIN,
             "1": MOTOR1_LIMIT_PIN,
         }
-        self._state = { "0": "idle", "1": "idle" }
+        self._state = {
+            "0": {"status": "idle", "direction": None},
+            "1": {"status": "idle", "direction": None}
+        }
         self._lock = Lock()
         self._threads = {}
 
@@ -44,7 +47,7 @@ class MotorController:
         return False
 
     def start(self, motor_id: str, direction: str):
-        if self._state[motor_id] == "moving":
+        if self._state[motor_id]["status"] == "moving":
             print(f"[WARN] Motor {motor_id} already moving")
             return
 
@@ -54,13 +57,13 @@ class MotorController:
 
         if self.is_limit_hit(motor_id, direction):
             print(f"[LIMIT] Motor {motor_id} {direction.upper()} blocked by limit switch.")
-            self._state[motor_id] = "limit"
+            self._state[motor_id] = {"status": "limit", "direction": direction}
             return
 
         self.stop(motor_id)
 
         gpio.dispatch(self.pins[key], "set")
-        self._state[motor_id] = "moving"
+        self._state[motor_id] = {"status": "moving", "direction": direction}
         print(f"[MOTOR] Started motor {motor_id} {direction.upper()}")
 
         t = Thread(target=self._monitor, args=(motor_id, direction), daemon=True)
@@ -72,8 +75,9 @@ class MotorController:
             key = f"motor{motor_id}_{dir}"
             if key in self.pins:
                 gpio.dispatch(self.pins[key], "reset")
-        if self._state[motor_id] == "moving":
-            self._state[motor_id] = "user_stop"
+        if self._state[motor_id]["status"] == "moving":
+            direction = self._state[motor_id]["direction"]
+            self._state[motor_id] = {"status": "user_stop", "direction": direction}
             print(f"[MOTOR] Stopped motor {motor_id} manually.")
 
     def start_both(self, direction: str):
@@ -90,19 +94,27 @@ class MotorController:
         while time.time() - start < self.timeout_sec:
             if gpio.read(pin) == 0:
                 self.stop(motor_id)
-                self._state[motor_id] = "limit"
+                self._state[motor_id] = {"status": "limit", "direction": direction}
                 return
-            if self._state[motor_id] != "moving":
+            if self._state[motor_id]["status"] != "moving":
                 return
             time.sleep(0.1)
         self.stop(motor_id)
-        self._state[motor_id] = "timeout"
+        self._state[motor_id] = {"status": "timeout", "direction": direction}
 
     def status(self, motor_id: str) -> str:
-        return self._state.get(motor_id, "unknown")
+        state = self._state.get(motor_id)
+        if not state:
+            return "unknown"
+        status = state["status"]
+        direction = state["direction"]
+        return f"{status} {direction}" if direction else status
+
+    def state(self, motor_id: str) -> dict:
+        return self._state.get(motor_id, {"status": "unknown", "direction": None})
 
     def is_done(self, motor_id: str) -> bool:
-        return self._state[motor_id] in ["limit", "timeout", "user_stop", "idle"]
+        return self._state[motor_id]["status"] in ["limit", "timeout", "user_stop", "idle"]
 
     def are_both_done(self) -> bool:
         return self.is_done("0") and self.is_done("1")

@@ -13,6 +13,7 @@ MOTOR1_LIMIT_PIN = "PI16"
 
 DEFAULT_MEASUREMENT_DURATION = 600
 DEBOUNCE_INTERVAL = 0.2 # seconds
-MEASUREMENT_CHECK_INTERVAL = 10 # how often to check during measurement
+MEASUREMENT_CHECK_INTERVAL = 5 # how often to check during measurement
 
 DEFAULT_MOTOR_TIMEOUT = 10          # seconds
+DEFAULT_CHART_UPDATE_DURATION = 5          # seconds

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, request, jsonify
 from .gpio_control import gpio
 from .motor_control import motor
 
@@ -12,11 +12,12 @@ def api_gpio():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+# motor state: idle, moving, timeout, limit, user_stop, unknown
 @gpio_bp.route("/motor/status", methods=["GET"])
 def motor_status():
     return jsonify({
-        "0": motor.status("0"),
-        "1": motor.status("1")
+        "0": motor.state("0"),
+        "1": motor.state("1")
     })
 
 @gpio_bp.route("/motor/jog/<action>", methods=["POST"])

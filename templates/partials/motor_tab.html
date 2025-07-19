@@ -1,9 +1,10 @@
 <div class="row">
-    <div class="col-md-6"> <!-- Motor 0 -->
+    <div class="col-md-6">
         <div class="card text-bg-light h-100">
             <div class="card-body d-flex flex-column">
-            <h5 class="card-title">Motor 0</h5>
-            <p class="card-text">Control jog movement of Motor 0.</p>
+                <h5 class="card-title">Motor 0</h5>
+                <p class="card-text">Control jog movement of Motor 0.</p>
+                <span id="status-0" class="badge bg-secondary mb-2">Loading...</span>
                 <div class="btn-group mb-3" role="group">
                     <button class="btn btn-primary"
                             onmousedown="jog(0, 'cw', 'start')"
@@ -15,11 +16,13 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6"> <!-- Motor 1 -->
+
+    <div class="col-md-6">
         <div class="card text-bg-light h-100">
             <div class="card-body d-flex flex-column">
                 <h5 class="card-title">Motor 1</h5>
                 <p class="card-text">Control jog movement of Motor 1.</p>
+                <span id="status-1" class="badge bg-secondary mb-2">Loading...</span>
                 <div class="btn-group mb-3" role="group">
                     <button class="btn btn-primary"
                             onmousedown="jog(1, 'cw', 'start')"
@@ -34,16 +37,44 @@
 </div>
 
 <script>
-    function jog(motorId, direction, action) {
-        safeFetch(`/gpio/motor/jog/${action}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `motor_id=${motorId}&direction=${direction}`
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) alert("Error: " + data.error);
-        });
-    }
+  function jog(motorId, direction, action) {
+    safeFetch(`/gpio/motor/jog/${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `motor_id=${motorId}&direction=${direction}`
+    }).then(res => res.json())
+      .then(data => {
+        if (data.error) alert("Error: " + data.error);
+        updateMotorStatus();  // Refresh after command
+      });
+  }
 
+  function getBadgeClass(status) {
+    switch (status) {
+      case 'idle': return 'bg-secondary';
+      case 'moving': return 'bg-primary';
+      case 'limit': return 'bg-warning text-dark';
+      case 'timeout': return 'bg-danger';
+      case 'user_stop': return 'bg-info text-dark';
+      case 'unknown': return 'bg-dark';
+      default: return 'bg-secondary';
+    }
+  }
+
+  function updateMotorStatus() {
+    fetch("/gpio/motor/status")
+      .then(res => res.json())
+      .then(data => {
+        for (let id of ['0', '1']) {
+          const motor = data[id];
+          const status = motor?.status || "unknown";
+          const direction = motor?.direction || "";
+          const el = document.getElementById(`status-${id}`);
+          el.className = 'badge ' + getBadgeClass(status) + ' mb-2';
+          el.textContent = direction ? `${status.toUpperCase()} ${direction.toUpperCase()}` : status.toUpperCase();
+        }
+      });
+  }
+
+  document.addEventListener("DOMContentLoaded", updateMotorStatus);
 </script>

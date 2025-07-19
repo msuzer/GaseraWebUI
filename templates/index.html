@@ -88,6 +88,23 @@
   </div>
 
 <!-- <script src="{{ url_for('static', filename='js/app.js') }}"></script> -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const motorTab = document.querySelector('#motor-tab');
 
+    motorTab?.addEventListener('shown.bs.tab', function (event) {
+      if (typeof updateMotorStatus === "function") {
+        updateMotorStatus();  // Call when tab is switched to
+      }
+    });
+
+    // Optional: call once on page load if the tab is already active
+    if (motorTab?.classList.contains("active")) {
+      if (typeof updateMotorStatus === "function") {
+        updateMotorStatus();
+      }
+    }
+  });
+</script>
 </body>
 </html>

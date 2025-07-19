@@ -34,8 +34,8 @@
           <form id="settingsForm" onsubmit="applySettings(); return false;">
           <div class="row g-3">
               <div class="col-md-6">
-              <label for="duration" class="form-label">Measurement Duration (sec)</label>
-              <input type="number" min="60" max="1800" step="10" id="duration" class="form-control" required>
+              <label for="measurementDuration" class="form-label">Measurement Duration (sec)</label>
+              <input type="number" min="60" max="1800" step="10" id="measurementDuration" class="form-control" required>
               </div>
               <div class="col-md-6">
               <label for="motorTimeout" class="form-label">Motor Move Timeout (sec)</label>
@@ -161,12 +161,12 @@
       countdown -= 1;
 
       if (countdown <= 0) {
-      clearInterval(countdownTimer);
-      bootstrap.Modal.getInstance(document.getElementById("startModal")).hide();
-      finalBeep();  // distinctive double-beep
-      doStartMeasurement();
+        clearInterval(countdownTimer);
+        bootstrap.Modal.getInstance(document.getElementById("startModal")).hide();
+        finalBeep();  // distinctive double-beep
+        doStartMeasurement();
       } else {
-      document.getElementById("startCountdown").textContent = countdown;
+        document.getElementById("startCountdown").textContent = countdown;
       }
     }, 1000);
   }
@@ -229,23 +229,25 @@
   }
 
   function applySettings() {
-    const duration = parseInt(document.getElementById('duration').value);
-    const motorTimeout = parseInt(document.getElementById('motorTimeout').value);
+    const duration = parseInt(document.getElementById('measurementDuration').value);
+    const timeout = parseInt(document.getElementById('motorTimeout').value);
 
     safeFetch("/gasera/api/settings/update", {
-    method: "POST",
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ duration, motor_timeout: motorTimeout })
-    })
-    .then(res => res.json())
-    .then(data => alert("Settings applied."));
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ measurement_duration : duration, motor_timeout: timeout })
+      })
+      .then(res => res.json())
+      .then(data => alert("Settings applied."));
   }
 
   // Pre-fill form from status
   function fetchSettings() {
     safeFetch("/gasera/api/settings/read").then(res => res.json()).then(data => {
-      document.getElementById("duration").value = data.duration || 600;
-      document.getElementById("motorTimeout").value = data.motor_timeout || 10;
+      const duration = data.measurement_duration || 600;
+      const timeout = data.motor_timeout || 10;
+      document.getElementById("measurementDuration").value = duration;
+      document.getElementById("motorTimeout").value = timeout;
     });
   }
 
