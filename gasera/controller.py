@@ -1,5 +1,5 @@
 from typing import Optional
-from .protocol import GaseraProtocol, DeviceStatus, ErrorList, TaskList, ACONResult, MeasurementStatus, DeviceName, IterationNumber, NetworkSettings, DateTimeResult, GenericResponse
+from .protocol import GaseraProtocol, DeviceStatus, ErrorList, TaskList, ACONResult, MeasurementStatus, DeviceName, IterationNumber, NetworkSettings, DateTimeResult
 from .config import get_gas_name, get_color_for_cas
 from .tcp_client import tcp_client
 

@@ -15,6 +15,7 @@
     .status-aborted { background-color: #f8d7da; }
     .hover-shadow:hover { box-shadow: 0 0 10px rgba(0,0,0,0.2); transition: box-shadow 0.2s ease; }
     #logBox { height: 250px; overflow-y: auto; white-space: pre-wrap; background: #f8f9fa; border: 1px solid #ccc; padding: 10px; }
+    canvas#liveChart { width: 100% !important; height: auto !important; }
   </style>
 </head>
 
@@ -30,81 +31,81 @@
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
 
-          <div class="container">
-            <div class="row justify-content-center">
-              <div class="col-md-10">
+          <ul class="nav nav-tabs justify-content-center mb-3" id="uiTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab">Home</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button" role="tab">Results</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="motor-tab" data-bs-toggle="tab" data-bs-target="#motor" type="button" role="tab">Motor Control</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="console-tab" data-bs-toggle="tab" data-bs-target="#console" type="button" role="tab">Command Console</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">System Info</button>
+            </li>
+          </ul>
 
-                <ul class="nav nav-tabs justify-content-center mb-3" id="uiTabs" role="tablist">
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab">Home</button>
-                  </li>
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button" role="tab">Results</button>
-                  </li>
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="motor-tab" data-bs-toggle="tab" data-bs-target="#motor" type="button" role="tab">Motor Control</button>
-                  </li>
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="console-tab" data-bs-toggle="tab" data-bs-target="#console" type="button" role="tab">Command Console</button>
-                  </li>
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">System Info</button>
-                  </li>
-                </ul>
+          <div class="tab-content" id="uiTabsContent">
 
-                <div class="tab-content" id="uiTabsContent">
-
-                <div class="tab-pane fade show active" id="home" role="tabpanel">
-                  <!-- Home UI goes here -->
-                  {% include "partials/home_tab.html" %}
-                </div>
-
-                <div class="tab-pane fade" id="results" role="tabpanel">
-                  <!-- Results UI goes here -->
-                  {% include "partials/results_tab.html" %}
-                </div>
-
-                <div class="tab-pane fade" id="motor" role="tabpanel">
-                  <!-- Motor UI goes here -->
-                  {% include "partials/motor_tab.html" %}
-                </div>
-
-                <div class="tab-pane fade" id="console" role="tabpanel">
-                    <!-- Command Console UI goes here -->
-                  {% include "partials/console_tab.html" %}
-                </div>
-
-                <div class="tab-pane fade" id="info" role="tabpanel">
-                  <!-- System Info UI goes here -->
-                  {% include "partials/info_tab.html" %}
-                </div>
-              </div>
-            </div>
+          <div class="tab-pane fade show active" id="home" role="tabpanel">
+            <!-- Home UI goes here -->
+            {% include "partials/home_tab.html" %}
           </div>
-        
+
+          <div class="tab-pane fade" id="results" role="tabpanel">
+            <!-- Results UI goes here -->
+            {% include "partials/results_tab.html" %}
+          </div>
+
+          <div class="tab-pane fade" id="motor" role="tabpanel">
+            <!-- Motor UI goes here -->
+            {% include "partials/motor_tab.html" %}
+          </div>
+
+          <div class="tab-pane fade" id="console" role="tabpanel">
+              <!-- Command Console UI goes here -->
+            {% include "partials/console_tab.html" %}
+          </div>
+
+          <div class="tab-pane fade" id="info" role="tabpanel">
+            <!-- System Info UI goes here -->
+            {% include "partials/info_tab.html" %}
+          </div>
+          
         </div>
       </div>
     </div>
   </div>
 
-<!-- <script src="{{ url_for('static', filename='js/app.js') }}"></script> -->
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const motorTab = document.querySelector('#motor-tab');
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const motorTab = document.querySelector('#motor-tab');
+      const resultsTab = document.querySelector('#results-tab');
 
-    motorTab?.addEventListener('shown.bs.tab', function (event) {
-      if (typeof updateMotorStatus === "function") {
-        updateMotorStatus();  // Call when tab is switched to
+      motorTab?.addEventListener('shown.bs.tab', function (event) {
+        if (typeof updateMotorStatus === "function") {
+          updateMotorStatus();  // Call when tab is switched to
+        }
+      });
+
+      // Optional: call once on page load if the tab is already active
+      if (motorTab?.classList.contains("active")) {
+        if (typeof updateMotorStatus === "function") {
+          updateMotorStatus();
+        }
+      }
+
+      if (resultsTab) {
+        resultsTab.addEventListener('shown.bs.tab', function () {
+          if (liveChart) liveChart.resize();
+        });
       }
     });
 
-    // Optional: call once on page load if the tab is already active
-    if (motorTab?.classList.contains("active")) {
-      if (typeof updateMotorStatus === "function") {
-        updateMotorStatus();
-      }
-    }
-  });
-</script>
+  </script>
 </body>
 </html>

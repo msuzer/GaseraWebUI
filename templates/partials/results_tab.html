@@ -3,9 +3,13 @@
 		<div class="card shadow-sm">
 			<div class="card-header d-flex justify-content-between align-items-center">
 				<span>Live Measurements</span>
-				<div>
-					<button class="btn btn-sm btn-outline-primary me-2" onclick="downloadImage()">Save Image</button>
-					<button class="btn btn-sm btn-outline-success" onclick="downloadCSV()">Save CSV</button>
+				<div class="d-flex align-items-center gap-3">
+					<div class="input-group input-group-sm" style="width: 180px;">
+						<input type="number" min="1" max="60" step="1" id="chartInterval" class="form-control form-control-sm" title = "secs within [1, 60]" />
+						<button class="btn btn-outline-primary btn-sm" title = "Set Chart Update Interval in secs." onclick="applyChartInterval()">Set Interval</button>
+					</div>
+					<button class="btn btn-sm btn-outline-primary" title="Save Chart Screenshot" onclick="downloadImage()">Save Image</button>
+					<button class="btn btn-sm btn-outline-success" title="Save Chart Data in CSV Format" onclick="downloadCSV()">Save CSV</button>
 				</div>
 			</div>
 			<div class="card-body">
@@ -24,28 +28,12 @@
   </div>
 </div>
 
-<div class="row mb-3 justify-content-center">
-	<div class="col-md-6">
-		<label for="chartInterval" class="form-label">Chart Update Interval (sec)</label>
-		<div class="input-group">
-			<input type="number" min="1" max="60" step="1" id="chartInterval" class="form-control" />
-			<button class="btn btn-outline-primary" onclick="applyChartInterval()">Apply</button>
-		</div>
-	</div>
-</div>
-
 <script>
-    let logEntries = [];
-    let chartData = [];
 	let trackVisibility = {};
 
     const ctx = document.getElementById('liveChart').getContext('2d');
     const liveChart = new Chart(ctx, {
-		type: 'line',
-		data: {
-			labels: [],
-			datasets: []
-		},
+		type: 'line', data: { labels: [], datasets: [] },
 		options: {
 			responsive: true,
 			animation: false,
@@ -71,8 +59,14 @@
 
 						trackVisibility[label] = chart.isDatasetVisible(index);
 
+						// Update matching checkbox
+						const checkbox = document.getElementById(`track-toggle-${index}`);
+						if (checkbox) {
+							checkbox.checked = trackVisibility[label];
+						}
+
 						// update server side config file
-						fetch("/gasera/api/settings/update", {
+						safeFetch("/gasera/api/settings/update", {
 							method: "POST",
 							headers: { "Content-Type": "application/json" },
 							body: JSON.stringify({ track_visibility: trackVisibility })
@@ -104,28 +98,26 @@
 				`;
 
 			div.querySelector("input").addEventListener("change", (e) => {
-			const visible = e.target.checked;
-			liveChart.data.datasets[i].hidden = !visible;
-			trackVisibility[label] = visible;
-			liveChart.update();
+				const visible = e.target.checked;
+				liveChart.data.datasets[i].hidden = !visible;
+				trackVisibility[label] = visible;
+				liveChart.update();
 
-			// Save preference
-			fetch("/gasera/api/settings/update", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ track_visibility: trackVisibility })
-			});
+				// Save preference
+				safeFetch("/gasera/api/settings/update", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ track_visibility: trackVisibility })
+				});
 			});
 
 			container.appendChild(div);
 		});
 	}
 
-	
 	function fetchData() {
 		safeFetch("/gasera/api/data/dummy").then(res => res.json()).then(data => {
 			// const label = new Date(data.timestamp * 1000).toLocaleTimeString();
-
 			const label = new Date(data.timestamp * 1000).toLocaleTimeString('en-GB', {
 				hour: '2-digit',
 				minute: '2-digit',
@@ -187,11 +179,10 @@
 	}
 	
 	let updateTimer = null;
-	let updateInterval = 5000;
 
 	function setChartUpdateInterval(ms) {
 		if (updateTimer) clearInterval(updateTimer);
-		updateInterval = 1000 * ms;
+		const updateInterval = 1000 * ms;
 		updateTimer = setInterval(fetchData, updateInterval);
 	}
 
@@ -202,7 +193,7 @@
 			return;
 		}
 
-		fetch("/gasera/api/settings/update", {
+		safeFetch("/gasera/api/settings/update", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ chart_update_interval: value })
@@ -219,7 +210,7 @@
 	}
 
 	// Initial fetch
-	fetch("/gasera/api/settings/read")
+	safeFetch("/gasera/api/settings/read")
 		.then(res => res.json())
 		.then(data => {
 			const interval = data.chart_update_interval || 5000;

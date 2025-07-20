@@ -62,7 +62,7 @@
   }
 
   function updateMotorStatus() {
-    fetch("/gpio/motor/status")
+    safeFetch("/gpio/motor/status")
       .then(res => res.json())
       .then(data => {
         for (let id of ['0', '1']) {

@@ -1,13 +1,11 @@
-from flask import Blueprint, Response, json, render_template, request, jsonify
+from flask import Blueprint, Response, json, request, jsonify
 from gasera import GaseraCommandDispatcher
 from gasera import MeasurementController
 from system.preferences import prefs
-from system.preferences import (KEY_CHART_UPDATE_INTERVAL, KEY_MEASUREMENT_DURATION, KEY_MOTOR_TIMEOUT)
+from system.preferences import KEY_MEASUREMENT_DURATION
 from .controller import gasera
 from .commands import GASERA_COMMANDS
-from gpio.motor_control import motor
 from datetime import datetime
-from config.constants import DEFAULT_CHART_UPDATE_DURATION
 import random, time
 
 gasera_bp = Blueprint("gasera", __name__)

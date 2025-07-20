@@ -2,10 +2,17 @@ import json
 from pathlib import Path
 
 # --- Preference Keys ---
-KEY_CHART_UPDATE_INTERVAL = "chart_update_interval"
-KEY_MEASUREMENT_DURATION = "measurement_duration"
-KEY_MOTOR_TIMEOUT = "motor_timeout"
-KEY_TRACK_VISIBILITY = "track_visibility"
+VALID_PREF_KEYS = [
+    "chart_update_interval",
+    "measurement_duration",
+    "motor_timeout",
+    "track_visibility",
+]
+
+KEY_CHART_UPDATE_INTERVAL = VALID_PREF_KEYS[0]
+KEY_MEASUREMENT_DURATION  = VALID_PREF_KEYS[1]
+KEY_MOTOR_TIMEOUT         = VALID_PREF_KEYS[2]
+KEY_TRACK_VISIBILITY      = VALID_PREF_KEYS[3]
 
 class Preferences:
     def __init__(self, filename="config/user_prefs.json"):
@@ -85,7 +92,7 @@ class Preferences:
 
     def update_from_dict(self, updates: dict):
         for key, value in updates.items():
-            if key in [KEY_MEASUREMENT_DURATION, KEY_MOTOR_TIMEOUT, KEY_CHART_UPDATE_INTERVAL, KEY_TRACK_VISIBILITY]:
+            if key in VALID_PREF_KEYS:
                 self.set(key, value)
 
 prefs = Preferences()
