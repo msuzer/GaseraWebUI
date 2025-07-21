@@ -50,7 +50,7 @@
 
         if (hasArgs) {
           inputGroup.push(...cmd.args.map((arg, i) =>
-            `<input type="text" class="form-control form-control-sm w-auto d-inline-block" placeholder="${arg}" id="${cmdId}-arg${i}">`
+            `<input type="text" class="form-control form-control-sm" placeholder="${arg}" id="${cmdId}-arg${i}">`
           ));
         }
 
@@ -58,10 +58,12 @@
         const button = `<button class="${buttonClass}" title="${tooltip}" onclick="sendWithArgs('${cmd.name}')">${cmd.title}</button>`;
 
         body.innerHTML += `
-          <div class="mb-3" title="${tooltip}">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-              ${inputGroup.join(" ")}
-              ${button}
+          <div class="mb-2" title="${tooltip}">
+            <div class="command-input">
+              <div class="input-group input-group-sm flex-wrap" style="max-width: 100%;">
+                ${inputGroup.join("")}
+                <button class="${buttonClass}" onclick="sendWithArgs('${cmd.name}')">${cmd.title}</button>
+              </div>
             </div>
           </div>
         `;

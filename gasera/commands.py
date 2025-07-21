@@ -1,4 +1,5 @@
 GASERA_COMMANDS = {
+# --- Measurement ---
     "get_status": {
         "section": "Measurement",
         "title": "Get Status",
@@ -13,21 +14,6 @@ GASERA_COMMANDS = {
         "mock": "",
         "output_id": "get_status_output",
         "handler": lambda g, a: g.get_device_status()
-    },
-    "get_errors": {
-        "section": "System",
-        "title": "Get Errors",
-        "description": "Retrieve active errors",
-        "help": "List any ongoing device errors.",
-        "style": "warning",
-        "args": [],
-        "tags": ['error'],
-        "requires": "",
-        "cooldown": 5,
-        "auto": False,
-        "mock": "",
-        "output_id": "get_errors_output",
-        "handler": lambda g, a: g.get_active_errors()
     },
     "get_tasks": {
         "section": "Measurement",
@@ -119,21 +105,6 @@ GASERA_COMMANDS = {
         "output_id": "get_phase_output",
         "handler": lambda g, a: g.get_measurement_status()
     },
-    "get_name": {
-        "section": "Network",
-        "title": "Get Name",
-        "description": "Get device name",
-        "help": "Returns configured device name.",
-        "style": "secondary",
-        "args": [],
-        "tags": ['config'],
-        "requires": "",
-        "cooldown": 60,
-        "auto": False,
-        "mock": "",
-        "output_id": "get_name_output",
-        "handler": lambda g, a: g.get_device_name()
-    },
     "get_iteration": {
         "section": "Measurement",
         "title": "Get Iteration",
@@ -148,6 +119,22 @@ GASERA_COMMANDS = {
         "mock": "",
         "output_id": "get_iteration_output",
         "handler": lambda g, a: g.get_iteration_number()
+    },
+# --- Network ---
+    "get_name": {
+        "section": "Network",
+        "title": "Get Name",
+        "description": "Get device name",
+        "help": "Returns configured device name.",
+        "style": "secondary",
+        "args": [],
+        "tags": ['config'],
+        "requires": "",
+        "cooldown": 60,
+        "auto": False,
+        "mock": "",
+        "output_id": "get_name_output",
+        "handler": lambda g, a: g.get_device_name()
     },
     "get_net": {
         "section": "Network",
@@ -194,21 +181,6 @@ GASERA_COMMANDS = {
         "output_id": "get_time_output",
         "handler": lambda g, a: g.get_device_time()
     },
-    "get_param": {
-        "section": "Parameters",
-        "title": "Get Param",
-        "description": "Get system parameter by name",
-        "help": "Parameter name required.",
-        "style": "info",
-        "args": ['param_name'],
-        "tags": ['param'],
-        "requires": "",
-        "cooldown": 0,
-        "auto": False,
-        "mock": "",
-        "output_id": "get_param_output",
-        "handler": lambda g, a: g.get_parameter(a[0])
-    },
     "set_online_enabled": {
         "section": "Network",
         "title": "Enable Online",
@@ -238,6 +210,37 @@ GASERA_COMMANDS = {
         "mock": "Online mode disabled.",
         "output_id": "set_online_output",
         "handler": lambda g, a: g.set_online_mode(False)
+    },
+    "reboot": {
+        "section": "Network",
+        "title": "Reboot",
+        "description": "Reboot device",
+        "help": "Warm restart device",
+        "style": "danger",
+        "args": [],
+        "tags": ['admin'],
+        "requires": "admin",
+        "cooldown": 600,
+        "auto": False,
+        "mock": "Simulated reboot done.",
+        "output_id": "reboot_output",
+        "handler": lambda g, a: g.reboot_device()
+    },
+# --- Parameters ---
+    "get_param": {
+        "section": "Parameters",
+        "title": "Get Param",
+        "description": "Get system parameter by name",
+        "help": "Parameter name required.",
+        "style": "info",
+        "args": ['param_name'],
+        "tags": ['param'],
+        "requires": "",
+        "cooldown": 0,
+        "auto": False,
+        "mock": "",
+        "output_id": "get_param_output",
+        "handler": lambda g, a: g.get_parameter(a[0])
     },
     "set_laser_tune": {
         "section": "Parameters",
@@ -299,6 +302,52 @@ GASERA_COMMANDS = {
         "output_id": "get_sampler_params_output",
         "handler": lambda g, a: g.get_sampler_parameters()
     },
+    "set_component_order": {
+        "section": "Parameters",
+        "title": "Set Comp. Order",
+        "description": "Set CAS component order",
+        "help": "Space-separated CAS names",
+        "style": "warning",
+        "args": ['cas1', 'cas2', '...'],
+        "tags": ['config'],
+        "requires": "admin",
+        "cooldown": 0,
+        "auto": False,
+        "mock": "",
+        "output_id": "set_component_order_output",
+        "handler": lambda g, a: g.set_component_order(' '.join(a))
+    },
+    "set_conc_format": {
+        "section": "Parameters",
+        "title": "Set Conc Format",
+        "description": "Set concentration format",
+        "help": "Flags: show_time show_cas show_conc [show_inlet]",
+        "style": "warning",
+        "args": ['time', 'cas', 'conc', 'inlet'],
+        "tags": ['format'],
+        "requires": "admin",
+        "cooldown": 0,
+        "auto": False,
+        "mock": "",
+        "output_id": "set_conc_format_output",
+        "handler": lambda g, a: g.set_concentration_format(int(a[0]), int(a[1]), int(a[2]), int(a[3]) if len(a) > 3 else -1)
+    },
+# --- System ---
+    "get_errors": {
+        "section": "System",
+        "title": "Get Errors",
+        "description": "Retrieve active errors",
+        "help": "List any ongoing device errors.",
+        "style": "warning",
+        "args": [],
+        "tags": ['error'],
+        "requires": "",
+        "cooldown": 5,
+        "auto": False,
+        "mock": "",
+        "output_id": "get_errors_output",
+        "handler": lambda g, a: g.get_active_errors()
+    },
     "get_device_info": {
         "section": "System",
         "title": "Get Device Info",
@@ -343,50 +392,5 @@ GASERA_COMMANDS = {
         "mock": "",
         "output_id": "get_selftest_output",
         "handler": lambda g, a: g.get_self_test_result()
-    },
-    "reboot": {
-        "section": "Network",
-        "title": "Reboot",
-        "description": "Reboot device",
-        "help": "Warm restart device",
-        "style": "danger",
-        "args": [],
-        "tags": ['admin'],
-        "requires": "admin",
-        "cooldown": 600,
-        "auto": False,
-        "mock": "Simulated reboot done.",
-        "output_id": "reboot_output",
-        "handler": lambda g, a: g.reboot_device()
-    },
-    "set_component_order": {
-        "section": "Parameters",
-        "title": "Set Component Order",
-        "description": "Set CAS component order",
-        "help": "Space-separated CAS names",
-        "style": "warning",
-        "args": ['cas1', 'cas2', '...'],
-        "tags": ['config'],
-        "requires": "admin",
-        "cooldown": 0,
-        "auto": False,
-        "mock": "",
-        "output_id": "set_component_order_output",
-        "handler": lambda g, a: g.set_component_order(' '.join(a))
-    },
-    "set_conc_format": {
-        "section": "Parameters",
-        "title": "Set Conc Format",
-        "description": "Set concentration format",
-        "help": "Flags: show_time show_cas show_conc [show_inlet]",
-        "style": "warning",
-        "args": ['time', 'cas', 'conc', 'inlet'],
-        "tags": ['format'],
-        "requires": "admin",
-        "cooldown": 0,
-        "auto": False,
-        "mock": "",
-        "output_id": "set_conc_format_output",
-        "handler": lambda g, a: g.set_concentration_format(int(a[0]), int(a[1]), int(a[2]), int(a[3]) if len(a) > 3 else -1)
-    },
+    }
 }
