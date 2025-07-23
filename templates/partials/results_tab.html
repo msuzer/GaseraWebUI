@@ -66,7 +66,7 @@
 						}
 
 						// update server side config file
-						safeFetch("/gasera/api/settings/update", {
+						safeFetch(API_PATHS.settings.update, {
 							method: "POST",
 							headers: { "Content-Type": "application/json" },
 							body: JSON.stringify({ track_visibility: trackVisibility })
@@ -104,7 +104,7 @@
 				liveChart.update();
 
 				// Save preference
-				safeFetch("/gasera/api/settings/update", {
+				safeFetch(API_PATHS.settings.update, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ track_visibility: trackVisibility })
@@ -116,7 +116,7 @@
 	}
 
 	function fetchData() {
-		safeFetch("/gasera/api/data/dummy").then(res => res.json()).then(data => {
+		safeFetch(API_PATHS.data.dummy).then(res => res.json()).then(data => {
 			// const label = new Date(data.timestamp * 1000).toLocaleTimeString();
 			const label = new Date(data.timestamp * 1000).toLocaleTimeString('en-GB', {
 				hour: '2-digit',
@@ -193,7 +193,7 @@
 			return;
 		}
 
-		safeFetch("/gasera/api/settings/update", {
+		safeFetch(API_PATHS.settings.update, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ chart_update_interval: value })
@@ -210,7 +210,7 @@
 	}
 
 	// Initial fetch
-	safeFetch("/gasera/api/settings/read")
+	safeFetch(API_PATHS.settings.read)
 		.then(res => res.json())
 		.then(data => {
 			const interval = data.chart_update_interval || 5000;

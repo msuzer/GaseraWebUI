@@ -142,7 +142,7 @@
   }
 
   function fetchStatus() {
-    safeFetch("/gasera/api/measurement/state").then(res => res.json()).then(data => {
+    safeFetch(API_PATHS.measurement.state).then(res => res.json()).then(data => {
       updateStatusUI(data.state, data.last_event);
     });
   }
@@ -176,7 +176,7 @@
   }
 
   function doStartMeasurement() {
-    safeFetch("/gasera/api/measurement/start", { method: "POST" })
+    safeFetch(API_PATHS.measurement.start, { method: "POST" })
     .then(res => res.json())
     .then(alertResponse);
   }
@@ -187,7 +187,7 @@
   }
 
   function confirmAbort() {
-    safeFetch("/gasera/api/measurement/abort", { method: "POST" })
+    safeFetch(API_PATHS.measurement.abort, { method: "POST" })
     .then(res => res.json())
     .then(alertResponse);
 
@@ -232,7 +232,7 @@
     const duration = parseInt(document.getElementById('measurementDuration').value);
     const timeout = parseInt(document.getElementById('motorTimeout').value);
 
-    safeFetch("/gasera/api/settings/update", {
+    safeFetch(API_PATHS.settings.update, {
       method: "POST",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ measurement_duration : duration, motor_timeout: timeout })
@@ -243,7 +243,7 @@
 
   // Pre-fill form from status
   function fetchSettings() {
-    safeFetch("/gasera/api/settings/read").then(res => res.json()).then(data => {
+    safeFetch(API_PATHS.settings.read).then(res => res.json()).then(data => {
       const duration = data.measurement_duration || 600;
       const timeout = data.motor_timeout || 10;
       document.getElementById("measurementDuration").value = duration;

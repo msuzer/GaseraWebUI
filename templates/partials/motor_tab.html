@@ -38,7 +38,7 @@
 
 <script>
   function jog(motorId, direction, action) {
-    safeFetch(`/gpio/motor/jog/${action}`, {
+    safeFetch(`${API_PATHS.gpio.motorJog}/${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `motor_id=${motorId}&direction=${direction}`
@@ -62,7 +62,7 @@
   }
 
   function updateMotorStatus() {
-    safeFetch("/gpio/motor/status")
+    safeFetch(API_PATHS.gpio.motorStatus)
       .then(res => res.json())
       .then(data => {
         for (let id of ['0', '1']) {

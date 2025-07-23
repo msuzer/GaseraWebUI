@@ -90,7 +90,7 @@
   }
 
   function sendCommand(cmd, args = []) {
-    safeFetch("/gasera/api/dispatch/instruction", {
+    safeFetch(API_PATHS.dispatch.instruction, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cmd, args })

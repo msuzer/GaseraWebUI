@@ -9,7 +9,7 @@
 <script>
   async function loadInfo() {
     try {
-      const res = await safeFetch("/system/api/info");
+      const res = await safeFetch(API_PATHS.system.info);
       const data = await res.json();
 
       // Populate list group
