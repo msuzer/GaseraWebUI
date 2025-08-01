@@ -20,7 +20,7 @@
         </div>
       </div>
       <div class="card-body">
-        <div id="logBox"></div>
+        <div id="logBox" style="white-space: pre-wrap; font-family: monospace;"></div>
       </div>
     </div>
   </div>
@@ -99,6 +99,7 @@
   // Global fetch failure handler
   let fetchFailed = false;
   let dataFetchTimers = [];
+  let logEntries = [];
 
   function safeFetch(url, options = {}) {
     if (fetchFailed) return Promise.reject("Fetch disabled");
@@ -123,16 +124,48 @@
     document.body.prepend(box);
   }
 
+  function appendLog(message) {
+    const logBox = document.getElementById("logBox");
+    const entry = document.createElement("div");
+    const now = new Date().toLocaleTimeString();
+    entry.textContent = `[${now}] ${message}`;
+    logBox.appendChild(entry);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function clearLog() {
+    logEntries = [];
+    const logBox = document.getElementById("logBox");
+    logBox.innerHTML = ""; // clean wipe
+  }
+
+  function saveLog() {
+    if (!logEntries.length) {
+      alert("Log is empty.");
+      return;
+    }
+
+    const content = logEntries.join("\n");
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "status_log.txt";
+    a.click();
+
+    URL.revokeObjectURL(url);
+  }
+
   function updateStatusUI(state, lastEvent) {
     const statusText = document.getElementById("statusText");
     const statusCard = document.getElementById("statusCard");
-    const logBox = document.getElementById("logBox");
 
     statusText.textContent = state.toUpperCase();
+
     if (lastEvent && !logEntries.includes(lastEvent)) {
       logEntries.push(lastEvent);
-      logBox.textContent = logEntries.join("\n");
-      logBox.scrollTop = logBox.scrollHeight;
+      appendLog(lastEvent);
     }
 
     statusCard.classList.remove("status-idle", "status-measuring", "status-aborted");
@@ -199,11 +232,6 @@
   function alertResponse(data) {
     alert(data.message);
     fetchStatus();
-  }
-
-  function clearLog() {
-    logEntries = [];
-    document.getElementById("logBox").textContent = "";
   }
 
   function beep(frequency = 800, duration = 100) {

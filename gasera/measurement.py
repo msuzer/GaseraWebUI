@@ -142,8 +142,8 @@ class MeasurementController:
         gpio.dispatch(BUZZER_PIN, "reset")
         self.log(f"[ERROR] {msg}")
 
-    def log(self, msg, level="INFO"):
-        self.last_event = f"[{level}] {msg}"
+    def log(self, msg):
+        self.last_event = f"{msg}"
         print(self.last_event)
 
     def get_status(self):

@@ -12,6 +12,7 @@ gasera_bp = Blueprint("gasera", __name__)
 
 # Device setup (customize IP/port)
 measurement = MeasurementController(gasera)
+measurement.launch_tick_loop()
 dispatcher = GaseraCommandDispatcher(gasera)
 
 from system.preferences import prefs, KEY_MEASUREMENT_DURATION
