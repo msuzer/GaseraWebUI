@@ -1,6 +1,6 @@
 import socket
-import threading
 from typing import Optional, Callable
+from threading import RLock
 
 STX = chr(2)
 ETX = chr(3)
@@ -15,22 +15,29 @@ class GaseraTCPClient:
         self.timeout = timeout
         self.on_connection_change = on_connection_change
         self.on_status_change = on_status_change
-
         self._sock: Optional[socket.socket] = None
-        self._lock = threading.Lock()
+        # Use RLock to allow re-entrant locking, useful if the same thread might call connect multiple times
+        # self._lock = threading.Lock()
+        self._lock = RLock()
         self._connected = False
 
     def connect(self) -> bool:
         with self._lock:
             self.disconnect()
             try:
-                self._sock = socket.create_connection((self.host, self.port), timeout=self.timeout)
-                self._sock.settimeout(self.timeout)
+                print(f"[TCP] Connecting to {self.host}:{self.port} with timeout {self.timeout}s")
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(self.timeout)  # enforce timeout for connect
+                sock.connect((self.host, self.port))
+                sock.settimeout(self.timeout)  # re-apply for I/O
+                self._sock = sock
                 self._connected = True
                 if self.on_connection_change:
                     self.on_connection_change(True)
+                print("[TCP] Connection successful.")
                 return True
-            except (socket.timeout, OSError):
+            except (socket.timeout, OSError) as e:
+                print(f"[TCP] Connection failed: {e}")
                 self._sock = None
                 self._connected = False
                 if self.on_connection_change:
@@ -60,6 +67,73 @@ class GaseraTCPClient:
                 return True
         except Exception:
             return False
+            
+    def send_command2(self, command: str) -> Optional[str]:
+        with self._lock:
+            if not self._sock:
+                print("[TCP] Socket not connected. Attempting connect...")
+                if not self.connect():
+                    print("[TCP] Connection failed.")
+                    return None
+
+            try:
+                assert self._sock
+                print(f"[TCP] SENDING: {repr(command)}")
+                print(f"[TCP] SENDING HEX: {' '.join(f'{ord(c):02X}' for c in command)}")
+
+                self._sock.sendall(command.encode("ascii"))
+
+                response = self._recv_until_etx()
+
+                if response is None:
+                    print("[TCP] No response or timeout occurred")
+                else:
+                    print(f"[TCP] RAW RESPONSE: {repr(response)}")
+                    print(f"[TCP] RESPONSE HEX: {' '.join(f'{ord(c):02X}' for c in response)}")
+
+                return response
+
+            except (socket.timeout, OSError) as e:
+                print(f"[TCP] Communication error: {e}")
+                self.disconnect()
+                return None
+
+    def _recv_until_etx2(self) -> Optional[str]:
+        assert self._sock
+        self._sock.settimeout(self.timeout)
+        buffer = ""
+
+        try:
+            while True:
+                chunk = self._sock.recv(1024)
+                if not chunk:
+                    print("[TCP] Disconnected or empty chunk")
+                    break
+
+                decoded = chunk.decode("ascii", errors="replace")
+                print(f"[TCP] RECV CHUNK: {repr(decoded)}")
+                buffer += decoded
+
+                if ETX in buffer:
+                    print("[TCP] Detected ETX in buffer")
+                    break
+        except socket.timeout:
+            print("[TCP] Receive timeout — no ETX received")
+            return None
+        except OSError as e:
+            print(f"[TCP] Socket error: {e}")
+            return None
+
+        start = buffer.find(STX)
+        end = buffer.find(ETX)
+
+        if start != -1 and end != -1:
+            print(f"[TCP] Parsed response from index {start} to {end}")
+            return buffer[start:end + 1]
+
+        print("[TCP] Received partial or malformed data:", repr(buffer))
+        return buffer if buffer else None
+    
 
     def send_command(self, command: str) -> Optional[str]:
         with self._lock:

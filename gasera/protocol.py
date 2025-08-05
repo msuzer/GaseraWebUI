@@ -133,7 +133,7 @@ class GaseraProtocol:
     }
 
     def build_command(self, func: str, data: str = "") -> str:
-        return f"{STX} {func} K0{(' ' + data if data else '')}{ETX}"
+        return f"{STX} {func} K0 {(data if data else '')}{ETX}"
 
     # Human-readable aliases
     def ask_current_status(self) -> str:
