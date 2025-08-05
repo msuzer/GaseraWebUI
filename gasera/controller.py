@@ -1,5 +1,6 @@
 from typing import Optional
 from .protocol import GaseraProtocol, DeviceStatus, ErrorList, TaskList, ACONResult, MeasurementStatus, DeviceName, IterationNumber, NetworkSettings, DateTimeResult
+from .protocol import DeviceInfo, SelfTestResult, TaskParameters, SystemParameters, SamplerParameters, ParameterValue
 from .config import get_gas_name, get_color_for_cas
 from .tcp_client import tcp_client
 
@@ -79,6 +80,11 @@ class GaseraController:
         cmd = self.proto.get_device_name()
         resp = tcp_client.send_command(cmd)
         return self.proto.parse_anam(resp) if resp else None
+    
+    def get_device_info(self) -> Optional[str]:
+        cmd = self.proto.get_device_info()
+        resp = tcp_client.send_command(cmd)
+        return self.proto.parse_adev(resp).as_string() if resp else None
 
     def get_iteration_number(self) -> Optional[IterationNumber]:
         cmd = self.proto.get_iteration_number()
@@ -118,7 +124,7 @@ class GaseraController:
     def get_parameter(self, name: str) -> Optional[str]:
         cmd = self.proto.get_parameter(name)
         resp = tcp_client.send_command(cmd)
-        return self.proto.parse_generic(resp, "APAR").as_string() if resp else None
+        return self.proto.parse_apar(resp).as_string() if resp else None
 
     def set_online_mode(self, enable: bool) -> Optional[str]:
         cmd = self.proto.set_online_mode(enable)
@@ -133,22 +139,17 @@ class GaseraController:
     def get_task_parameters(self, task_id: int) -> Optional[str]:
         cmd = self.proto.get_task_parameters(task_id)
         resp = tcp_client.send_command(cmd)
-        return self.proto.parse_generic(resp, "ATSP").as_string() if resp else None
+        return self.proto.parse_atsp(resp).as_string() if resp else None
 
     def get_system_parameters(self) -> Optional[str]:
         cmd = self.proto.get_system_parameters()
         resp = tcp_client.send_command(cmd)
-        return self.proto.parse_generic(resp, "ASYP").as_string() if resp else None
+        return self.proto.parse_asyp(resp).as_string() if resp else None
 
     def get_sampler_parameters(self) -> Optional[str]:
         cmd = self.proto.get_sampler_parameters()
         resp = tcp_client.send_command(cmd)
-        return self.proto.parse_generic(resp, "AMPS").as_string() if resp else None
-
-    def get_device_info(self) -> Optional[str]:
-        cmd = self.proto.get_device_info()
-        resp = tcp_client.send_command(cmd)
-        return self.proto.parse_generic(resp, "ADEV").as_string() if resp else None
+        return self.proto.parse_amps(resp).as_string() if resp else None
 
     def start_self_test(self) -> Optional[str]:
         cmd = self.proto.start_self_test()
@@ -158,7 +159,7 @@ class GaseraController:
     def get_self_test_result(self) -> Optional[str]:
         cmd = self.proto.get_self_test_result()
         resp = tcp_client.send_command(cmd)
-        return self.proto.parse_generic(resp, "ASTR").as_string() if resp else None
+        return self.proto.parse_astr(resp).as_string() if resp else None
 
     def reboot_device(self) -> Optional[str]:
         cmd = self.proto.reboot_device()

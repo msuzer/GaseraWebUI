@@ -75,6 +75,14 @@ class DeviceName:
         return f"Device Name: {self.name}" if not self.error else "Error retrieving device name."
 
 @dataclass
+class DeviceInfo:
+    error: bool
+    info: str
+
+    def as_string(self):
+        return f"Device Info: {self.info}" if not self.error else "Error retrieving device information."
+
+@dataclass
 class IterationNumber:
     error: bool
     iteration: int
@@ -99,7 +107,90 @@ class DateTimeResult:
     datetime_str: str
 
     def as_string(self):
-        return f"Device Time: {self.datetime_str}" if not self.error else "Error retrieving time."
+        if self.error:
+            return "Error retrieving time."
+        clean_str = self.datetime_str.replace("T", " ") # Replace 'T' with space
+        return f"Device Time: {clean_str}"
+
+@dataclass
+class SelfTestResult:
+    error: bool
+    code: int
+    description: str
+
+    def as_string(self):
+        return f"Self-Test: {self.description} (code={self.code})" if not self.error else "Error retrieving self-test result."
+
+@dataclass
+class TaskParameters:
+    error: bool
+    cas_list: list
+    target_pressure: float
+    flush_bypass: float
+    flush_cell: float
+    flush_cycles: int
+
+    def as_string(self):
+        if self.error:
+            return "Error retrieving task parameters."
+        cas_str = ", ".join(self.cas_list) if self.cas_list else "-"
+        return (
+            f"CAS: {cas_str} | "
+            f"Target P: {self.target_pressure} mbar | "
+            f"Flush Bypass: {self.flush_bypass} s | "
+            f"Flush Cell: {self.flush_cell} s | "
+            f"Flush Cycles: {self.flush_cycles}"
+        )
+
+@dataclass
+class SystemParameter:
+    name: str
+    value: float
+    min_val: float
+    max_val: float
+    unit: str
+
+@dataclass
+class SystemParameters:
+    error: bool
+    params: list  # List[SystemParameter]
+
+    def as_string(self):
+        if self.error:
+            return "Error retrieving system parameters."
+        return "System Parameters:\n" + "\n".join(
+            f"{p.name}: {p.value} [{p.min_val}..{p.max_val}] {p.unit}" for p in self.params
+        )
+
+@dataclass
+class InletConfig:
+    id: int
+    active: bool
+    bypass_time: float
+
+@dataclass
+class SamplerParameters:
+    error: bool
+    mps_connected: bool
+    inlets: list  # List[InletConfig]
+
+    def as_string(self):
+        if self.error:
+            return "Error retrieving sampler parameters."
+        if not self.mps_connected:
+            return "MPS not connected."
+        return "Inlet Configuration:\n" + "\n".join(
+            f"Inlet {i.id}: {'Active' if i.active else 'Inactive'}, Bypass Time: {i.bypass_time} s"
+            for i in self.inlets
+        )
+
+@dataclass
+class ParameterValue:
+    error: bool
+    value: str
+
+    def as_string(self):
+        return f"Parameter Value: {self.value}" if not self.error else "Error retrieving parameter."
 
 @dataclass
 class GenericResponse:
@@ -277,6 +368,24 @@ class GaseraProtocol:
         error = parts[0] != '0'
         name = " ".join(parts[1:]) if not error else ""
         return DeviceName(error, name)
+    
+    def parse_adev(self, response: str) -> DeviceInfo:
+        if not response.startswith(STX) or not response.endswith(ETX):
+            raise ValueError("Invalid response framing")
+
+        import shlex
+        body = response[1:-1].strip()
+        tokens = shlex.split(body)  # handles quoted strings properly
+
+        if len(tokens) < 2 or tokens[0] != "ADEV":
+            raise ValueError("Malformed ADEV response")
+
+        error = tokens[1] != '0'
+        info_parts = tokens[2:] if not error else []
+
+        info = " | ".join(part if part else "-" for part in info_parts)
+
+        return DeviceInfo(error, info)
 
     def parse_aitr(self, response: str) -> IterationNumber:
         cmd, parts = self.parse_response(response)
@@ -296,6 +405,97 @@ class GaseraProtocol:
         error = parts[0] != '0'
         dt = parts[1] if not error and len(parts) > 1 else ""
         return DateTimeResult(error, dt)
+
+    def parse_astr(self, response: str) -> SelfTestResult:
+        cmd, parts = self.parse_response(response)
+        error = parts[0] != '0'
+        code = int(parts[1]) if len(parts) > 1 and not error else -99
+
+        desc_map = {
+            -2: "Result N/A",
+            -1: "Test in progress",
+             0: "Self-test failed",
+             1: "Self-test passed"
+        }
+
+        description = desc_map.get(code, "Unknown")
+        return SelfTestResult(error, code, description)
+
+    def parse_atsp(self, response: str) -> TaskParameters:
+        cmd, parts = self.parse_response(response)
+        error = parts[0] != '0'
+
+        if error or len(parts) < 6:
+            return TaskParameters(True, [], 0.0, 0.0, 0.0, 0)
+
+        try:
+            # CAS list is comma-separated in one field
+            cas_list = parts[1].split(',')
+            target_pressure = float(parts[2])
+            flush_bypass = float(parts[3])
+            flush_cell = float(parts[4])
+            flush_cycles = int(parts[5])
+        except (ValueError, IndexError):
+            return TaskParameters(True, [], 0.0, 0.0, 0.0, 0)
+
+        return TaskParameters(False, cas_list, target_pressure, flush_bypass, flush_cell, flush_cycles)
+
+    def parse_asyp(self, response: str) -> SystemParameters:
+        cmd, parts = self.parse_response(response)
+        error = parts[0] != '0'
+
+        params = []
+
+        if error or len(parts) < 2:
+            return SystemParameters(True, [])
+
+        for part in parts[1:]:
+            tokens = part.split(',')
+            if len(tokens) != 5:
+                continue
+            try:
+                name = tokens[0]
+                value = float(tokens[1])
+                min_val = float(tokens[2])
+                max_val = float(tokens[3])
+                unit = tokens[4]
+                params.append(SystemParameter(name, value, min_val, max_val, unit))
+            except ValueError:
+                continue  # skip malformed entry
+
+        return SystemParameters(False, params)
+
+    def parse_amps(self, response: str) -> SamplerParameters:
+        cmd, parts = self.parse_response(response)
+
+        if not parts:
+            return SamplerParameters(True, False, [])
+
+        status = parts[0]
+        if status == '1':
+            return SamplerParameters(True, False, [])
+        elif status == '2':
+            return SamplerParameters(False, False, [])  # MPS not connected
+
+        inlets = []
+        try:
+            i = 1
+            while i + 2 < len(parts):
+                inlet_id = int(parts[i])
+                active = parts[i + 1] == '1'
+                bypass_time = float(parts[i + 2])
+                inlets.append(InletConfig(inlet_id, active, bypass_time))
+                i += 3
+        except ValueError:
+            return SamplerParameters(True, False, [])
+
+        return SamplerParameters(False, True, inlets)
+
+    def parse_apar(self, response: str) -> ParameterValue:
+        cmd, parts = self.parse_response(response)
+        error = parts[0] != '0'
+        value = parts[1] if not error and len(parts) > 1 else ""
+        return ParameterValue(error, value)
 
     def parse_generic(self, response: str, command: str) -> GenericResponse:
         cmd, parts = self.parse_response(response)
