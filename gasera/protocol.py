@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 from datetime import datetime
+from .config import get_cas_details
 
 STX = chr(2)
 ETX = chr(3)
@@ -44,9 +45,9 @@ class ACONResult:
     records: List[ACONRecord]  # (timestamp, CAS, ppm)
 
     def as_string(self):
-        return "Measurement Results:\n" + "\n".join(
-            f"{rec.timestamp}: {rec.cas} = {rec.ppm} ppm" for rec in self.records
-        ) if not self.error else "Error retrieving measurement results."
+            return f"Measurement Results ({self.readable_time}):\n" + "\n".join(
+                f"{get_cas_details(rec.cas)['label']}: {rec.ppm:.4f} ppm" for rec in self.records
+            ) if not self.error else "Error retrieving measurement results."
     
     @property
     def timestamp(self):
@@ -55,7 +56,6 @@ class ACONResult:
     @property
     def readable_time(self):
         return datetime.fromtimestamp(self.timestamp).strftime("%Y-%m-%d %H:%M:%S") if self.timestamp else None
-
 
 @dataclass
 class MeasurementStatus:
@@ -353,7 +353,7 @@ class GaseraProtocol:
                 timestamp = int(parts[i])
                 cas = parts[i + 1]
                 ppm = float(parts[i + 2])
-                records.append((timestamp, cas, ppm))
+                records.append(ACONRecord(timestamp, cas, ppm))
                 i += 3
         return ACONResult(error, records)
 
