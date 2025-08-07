@@ -114,6 +114,7 @@ If your Orange Pi Zero 3 has internet access:
 cd /opt/
 sudo git clone https://github.com/msuzer/GaseraWebUI.git
 cd GaseraWebUI/install
+sudo chmod 744 *.sh
 sudo ./deploy.sh
 ```
 
