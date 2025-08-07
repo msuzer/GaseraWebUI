@@ -9,7 +9,8 @@ MOTOR1_CW_PIN = "PC15"
 MOTOR1_CCW_PIN = "PC14"
 
 MOTOR0_LIMIT_PIN = "PI6"
-MOTOR1_LIMIT_PIN = "PI16"
+MOTOR1_LIMIT_PIN = "PC8"
+# MOTOR1_LIMIT_PIN = "PI16" # PI16 works on armbian but marked as 'used' on debian bookworm, so switching to PC8
 
 DEFAULT_MEASUREMENT_DURATION = 600
 DEBOUNCE_INTERVAL = 0.2 # seconds

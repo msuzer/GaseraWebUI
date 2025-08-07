@@ -37,7 +37,7 @@ A web-based control panel and data viewer for Gasera ONE devices, built with Fla
 
 ### Digital Inputs
 - Limit Switch 0 (Motor0): `PI6`
-- Limit Switch 1 (Motor1): `PI16`
+- Limit Switch 1 (Motor1): `PC8` (`PI16` works on armbian image but it is marked as used in debian image)
 - Trigger Input (to start/stop process): `PC1`
 
 ### Digital Output
@@ -53,9 +53,23 @@ A web-based control panel and data viewer for Gasera ONE devices, built with Fla
 
 ## 📆 Requirements
 
-- Python 3.7+
-- Flask
-- Waitress (recommended for embedded/server use)
+Below are the required packages for running GaseraWebUI on an Orange Pi Zero 3, with a short explanation for each:
+
+- `nginx` — Reverse proxy server for forwarding requests to Flask app  
+- `python3` — Main Python runtime
+- `python3-pip` — Python package manager for installing any extras  
+- `python3-flask` — Web framework used by the application  
+- `python3-waitress` — Production WSGI server to run Flask app behind Nginx  
+- `python3-netifaces` — Used for querying and managing network interfaces  
+- `python3-psutil` — For system stats, process info, memory usage, etc.  
+- `gpiod`, `python3-libgpiod` — GPIO access and control libraries for modern kernels (via libgpiod)  
+- `git` — For cloning the application from GitHub  
+- `network-manager` — Manages Wi-Fi and Ethernet connections  
+- `hostapd` — Used if acting as a Wi-Fi access point (AP mode)  
+- `dnsmasq` — Lightweight DNS/DHCP server (for AP mode)  
+- `curl` — Command-line tool for HTTP requests (useful for testing or scripting)  
+- `net-tools` — Classic tools like `ifconfig`, `netstat` (optional but handy)  
+- `socat` — Multipurpose relay for serial, TCP/UDP, etc. (used in debugging or proxies)
 
 ---
 
@@ -104,6 +118,7 @@ These commands are integrated into the backend logic via the `GaseraProtocol` an
 
 ## 🚀 Installation
 
+📄 See [OPiZ3 Setup Instructions](docs/opiz3_setup.md) for burning image to sd-card and more up to ssh connection.
 📄 See [Network Setup Instructions](docs/network_setup.md) for Wi-Fi and Ethernet configuration.
 
 ### Option 1: Online Installation (Recommended)

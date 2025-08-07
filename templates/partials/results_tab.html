@@ -213,7 +213,7 @@
 	safeFetch(API_PATHS.settings.read)
 		.then(res => res.json())
 		.then(data => {
-			const interval = data.chart_update_interval || 5000;
+			const interval = data.chart_update_interval || 5;
 			document.getElementById("chartInterval").value = interval;
 			setChartUpdateInterval(interval);
 			trackVisibility = data.track_visibility || {};
