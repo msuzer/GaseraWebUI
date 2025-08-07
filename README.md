@@ -111,7 +111,8 @@ These commands are integrated into the backend logic via the `GaseraProtocol` an
 If your Orange Pi Zero 3 has internet access:
 
 ```bash
-git clone https://github.com/msuzer/GaseraWebUI.git
+cd /opt/
+sudo git clone https://github.com/msuzer/GaseraWebUI.git
 cd GaseraWebUI/install
 sudo ./deploy.sh
 ```
