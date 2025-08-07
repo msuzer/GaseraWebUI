@@ -119,6 +119,7 @@ These commands are integrated into the backend logic via the `GaseraProtocol` an
 ## 🚀 Installation
 
 📄 See [OPiZ3 Setup Instructions](docs/opiz3_setup.md) for burning image to sd-card and more up to ssh connection.
+
 📄 See [Network Setup Instructions](docs/network_setup.md) for Wi-Fi and Ethernet configuration.
 
 ### Option 1: Online Installation (Recommended)
