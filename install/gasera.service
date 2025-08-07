@@ -1,0 +1,12 @@
+[Unit]
+Description=Gasera Flask API
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/GaseraWebUI
+ExecStart=/usr/bin/python3 run.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
