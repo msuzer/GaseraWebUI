@@ -6,7 +6,7 @@ REPO_URL="https://github.com/msuzer/GaseraWebUI.git"
 APP_DIR="/opt/GaseraWebUI"
 
 echo "[1/6] Installing required packages..."
-apt install -y nginx python3 python3-pip python3-flask python3-waitress python3-psutil git network-manager hostapd dnsmasq curl net-tools socat
+apt install -y nginx python3 gpiod python3-pip python3-flask python3-waitress python3-netifaces python3-libgpiod python3-psutil git network-manager hostapd dnsmasq curl net-tools socat
 
 echo "[2/6] Setting file and folder permissions..."
 chown -R www-data:www-data "$APP_DIR"

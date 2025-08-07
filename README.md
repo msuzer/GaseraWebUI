@@ -108,7 +108,7 @@ These commands are integrated into the backend logic via the `GaseraProtocol` an
 
 ### Option 1: Online Installation (Recommended)
 
-If your Orange Pi Zero 3 has internet access:
+Make sure your Orange Pi Zero 3 has internet access:
 
 ```bash
 cd /opt/
@@ -130,7 +130,7 @@ This will:
 
 ### Option 2: Offline Installation (Pre-packaged Files)
 
-If your device has no internet access, you can copy the `install/` folder to the target device manually:
+If your device has no internet access, copy the `GaseraWebUI` folder to the target device manually, then:
 
 ```bash
 cd install

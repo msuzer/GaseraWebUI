@@ -11,8 +11,20 @@ PIN_MAP = {
 if IS_LINUX:
     import gpiod
 
+    def find_gpiochip_by_line_count(target_lines=288, fallback="gpiochip0"):
+        for i in range(2):  # You can increase this if needed
+            chip_name = f"gpiochip{i}"
+            try:
+                chip = gpiod.Chip(chip_name)
+                if chip.num_lines() == target_lines:
+                    return chip_name
+            except OSError:
+                continue
+        return fallback
+
     class GPIOController:
-        def __init__(self, chip_name='gpiochip1'):
+        def __init__(self):
+            chip_name = find_gpiochip_by_line_count(288)
             self.chip = gpiod.Chip(chip_name)
             self.pin_states = {}
 
