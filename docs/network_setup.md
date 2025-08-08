@@ -6,14 +6,14 @@ Replace SSID and password strings with your actual Wi-Fi credentials:
 
 ```bash
 nmcli dev wifi list
-nmcli device wifi connect "SSID1" password "password1" name "preferred_ap"
-nmcli device wifi connect "SSID2" password "password2" name "secondary_ap"
+nmcli dev wifi connect "SSID1" password "password1" name "preferred_ap"
+nmcli dev wifi connect "SSID2" password "password2" name "secondary_ap"
 ```
 
 To connect to open networks (no password):
 
 ```bash
-nmcli device wifi connect "SSID3" name "open_ap"
+nmcli dev wifi connect "SSID3" name "open_ap"
 ```
 
 Optional TUI interface:
@@ -34,7 +34,7 @@ nmcli connection modify secondary_ap connection.autoconnect-priority 50
 Check status:
 
 ```bash
-nmcli device status
+nmcli dev status
 ip a show wlan0
 ```
 
@@ -42,17 +42,17 @@ ip a show wlan0
 
 ## 🌐 Configure Static IP on Ethernet (for Gasera)
 
-Assign static IP to `eth0`:
+Assign static IP to `end0`:
 
 ```bash
-sudo ip addr add 192.168.100.1/24 dev eth0
-sudo ip link set eth0 up
+sudo ip addr add 192.168.100.1/24 dev end0
+sudo ip link set end0 up
 ```
 
 Or using NetworkManager:
 
 ```bash
-nmcli con add type ethernet ifname eth0 con-name gasera-static ip4 192.168.100.1/24
+nmcli con add type ethernet ifname end0 con-name gasera-static ip4 192.168.100.1/24
 nmcli con up gasera-static
 ```
 
@@ -81,3 +81,13 @@ Alternatively, use the Python test script:
 python3 test_gasera.py
 ```
 
+---
+
+## 🔗 Resources
+
+- [Orange Pi Official Website](https://www.orangepi.org/)
+- [Debian Images for Orange Pi](https://wiki.debian.org/InstallingDebianOn/Allwinner)
+
+---
+
+MIT License. Documentation by [Mehmet H Suzer].

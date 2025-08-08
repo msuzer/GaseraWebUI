@@ -36,6 +36,13 @@ This guide walks you through setting up your **Orange Pi Zero 3 (OPiZ3)** from s
    sudo dd if=/path/to/image.img of=/dev/sdb bs=8M status=progress conv=fsync
    ```
 
+   Or if your image has extension 7z:
+
+   ```bash
+   sudo apt install p7zip-full
+   7z x /path/to/image.7z
+   ```
+
    Or do all at once:
 
    ```bash
@@ -143,6 +150,20 @@ You are now connected to your OPiZ3 via SSH over Ethernet. UART can now be disco
 ---
 
 ## 📌 Tips
+
+- Want to switch to/from GUI to text mode:
+
+  - Enable GUI:
+
+  ```bash
+  sudo systemctl set-default graphical.target
+  ```
+
+  - Disable GUI:
+
+  ```bash
+  sudo systemctl set-default multi-user.target
+  ```
 
 - Use `nmap` to scan your network for the OPiZ3 if you can't find the IP:
 
