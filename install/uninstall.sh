@@ -21,8 +21,12 @@ rm -f /etc/udev/rules.d/99-gpio.rules
 udevadm control --reload-rules
 udevadm trigger
 
-echo "[5/6] Removing Python packages..."
-pip3 uninstall -y waitress flask psutil || true
+echo "[5/6] Take down and remove the static ethernet connection"
+if nmcli con show | grep -q "gasera-static"; then
+    nmcli con down gasera-static || true
+    nmcli con delete gasera-static
+    echo "Removed gasera-static connection."
+fi
 
 echo "[6/6] Final cleanup of GPIO permissions..."
 for dev in /dev/gpiochip*; do
