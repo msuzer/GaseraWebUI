@@ -1,12 +1,23 @@
 #!/bin/bash
+# Gasera Web UI uninstallation script
 
 set -e
 
-echo "[1/6] Stopping and disabling systemd service..."
+APP_DIR="/opt/GaseraWebUI"
+LOG_FILE="/var/log/gasera-uninstall.log"
+
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "🧹 Starting Gasera Web UI uninstallation..."
+
+echo "[1/6] Stopping and disabling systemd services..."
 systemctl stop gasera.service || true
 systemctl disable gasera.service || true
 rm -f /etc/systemd/system/gasera.service
-systemctl daemon-reexec
+systemctl stop gasera-ingest.service || true
+systemctl disable gasera-ingest.service || true
+rm -f /etc/systemd/system/gasera-ingest.service
+systemctl daemon-reload
 
 echo "[2/6] Removing Flask app from /opt..."
 rm -rf /opt/GaseraWebUI
@@ -32,5 +43,9 @@ echo "[6/6] Final cleanup of GPIO permissions..."
 for dev in /dev/gpiochip*; do
     [ -e "$dev" ] && chmod 600 "$dev" && chown root:root "$dev"
 done
+groupdel gpio || true
 
-echo "🧽 Uninstallation complete. You can now redeploy with a clean slate."
+echo "🧽 Uninstallation complete."
+echo "📄 Log saved to: $LOG_FILE"
+echo "You can now redeploy with a clean slate."
+
