@@ -30,5 +30,12 @@ API_PATHS = {
         "info": "/system/api/info",
         "prefsGet": "/system/prefs",
         "prefsPost": "/system/prefs"
-    }
+    },
+    "history": {
+        "gases": "/api/gases",
+        "measurements": "/api/measurements",
+        "exportCsv": "/api/measurements/export.csv",
+        "status": "/api/status"
+    },
+    "status" : "/api/status"
 }

@@ -1,14 +1,14 @@
-# install/gasera-web.service
 [Unit]
-Description=Gasera Web UI (Waitress)
+Description=Gasera Ingestion Daemon
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 EnvironmentFile=/opt/GaseraWebUI/.env
 WorkingDirectory=/opt/GaseraWebUI
-ExecStart=/usr/bin/python3 /opt/GaseraWebUI/run.py
+ExecStart=/usr/bin/python3 -m ingest.daemon
 Restart=on-failure
+RestartSec=5
 User=www-data
 Group=www-data
 

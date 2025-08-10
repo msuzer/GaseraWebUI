@@ -1,0 +1,39 @@
+<!-- templates/partials/data_tab.html -->
+<div class="container-fluid py-3" id="data-tab">
+  <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="data-live-toggle">
+      <label class="form-check-label" for="data-live-toggle">Live (auto-refresh)</label>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <label class="form-label mb-0" for="data-start">Start</label>
+      <input type="datetime-local" class="form-control form-control-sm" id="data-start" style="min-width: 220px;">
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <label class="form-label mb-0" for="data-end">End</label>
+      <input type="datetime-local" class="form-control form-control-sm" id="data-end" style="min-width: 220px;">
+    </div>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap" id="data-gas-toggles">
+      <!-- gas toggles injected by JS -->
+    </div>
+
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-primary" id="data-load-btn">Load</button>
+      <a class="btn btn-sm btn-outline-secondary" id="data-export-btn" href="#" download>Export CSV</a>
+      <button class="btn btn-sm btn-outline-secondary" id="data-snapshot-btn">Snapshot</button>
+    </div>
+  </div>
+
+  <div class="mb-2 small text-muted" id="data-status-line">
+    <!-- status text goes here -->
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <canvas id="data-chart" height="140"></canvas>
+    </div>
+  </div>
+</div>
