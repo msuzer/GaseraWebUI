@@ -14,7 +14,7 @@ find "$APP_DIR" -type d -exec chmod 755 {} \;
 find "$APP_DIR" -type f -exec chmod 644 {} \;
 
 echo "[3.0/7] Installing ingest service..."
-cp deploy/gasera-ingest.service /etc/systemd/system/
+cp gasera-ingest.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now gasera-ingest
 
