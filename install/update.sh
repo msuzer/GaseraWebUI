@@ -14,6 +14,6 @@ sudo git pull origin main || {
 
 # Restart service (customize this)
 echo "Restarting service..."
-sudo systemctl restart gasera-webui.service
+sudo systemctl restart gasera.service
 
 echo "Update complete."
