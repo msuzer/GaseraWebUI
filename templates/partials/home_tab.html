@@ -15,8 +15,8 @@
       <div class="card-header d-flex justify-content-between align-items-center">
         <span>Status Log</span>
         <div>
-          <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearLog()">Clear</button>
-          <button class="btn btn-sm btn-outline-primary" onclick="saveLog()">Save</button>
+          <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearStatusLog()">Clear</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="saveStatusLog()">Save</button>
         </div>
       </div>
       <div class="card-body">
@@ -133,15 +133,15 @@
     logBox.scrollTop = logBox.scrollHeight;
   }
 
-  function clearLog() {
+  function clearStatusLog() {
     logEntries = [];
     const logBox = document.getElementById("logBox");
     logBox.innerHTML = ""; // clean wipe
   }
 
-  function saveLog() {
+  function saveStatusLog() {
     if (!logEntries.length) {
-      alert("Log is empty.");
+      alert("Status Log is empty.");
       return;
     }
 

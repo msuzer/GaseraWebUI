@@ -5,6 +5,28 @@ from .config import get_gas_name, get_color_for_cas
 from .tcp_client import tcp_client
 
 class GaseraController:
+    class TaskList:
+        CALIBRATION_TASK = "7"
+        DEFAULT = "11"
+        FLUSH = "12"
+        MTEST2 = "13"
+
+        # Mapping of task name → numeric ID (both as strings)
+        NAME_TO_ID = {
+            "Calibration Task": CALIBRATION_TASK,
+            "DEFAULT": DEFAULT,
+            "FLUSH": FLUSH,
+            "MTEST2": MTEST2,
+        }
+
+        @classmethod
+        def all_ids(cls):
+            return set(cls.NAME_TO_ID.values())
+
+        @classmethod
+        def all_names(cls):
+            return set(cls.NAME_TO_ID.keys())
+
     def __init__(self):
         self.proto = GaseraProtocol()
     
@@ -56,7 +78,10 @@ class GaseraController:
         resp = tcp_client.send_command(cmd)
         return self.proto.parse_atsk(resp) if resp else None
 
-    def start_measurement(self, task_id: str = "0") -> Optional[str]:
+    def start_measurement(self, task_id: str = TaskList.DEFAULT) -> Optional[str]:
+        if task_id not in TaskList.all_ids():
+                return None
+
         cmd = self.proto.start_measurement_by_id(task_id)
         resp = tcp_client.send_command(cmd)
         return self.proto.parse_generic(resp, "STAM").as_string() if resp else None
@@ -112,6 +137,9 @@ class GaseraController:
         return self.proto.parse_generic(resp, "SCON").as_string() if resp else None
 
     def start_measurement_by_name(self, task_name: str) -> Optional[str]:
+        if task_name not in TaskList.all_names():
+            return None
+    
         cmd = self.proto.start_measurement_by_name(task_name)
         resp = tcp_client.send_command(cmd)
         return self.proto.parse_generic(resp, "STAT").as_string() if resp else None

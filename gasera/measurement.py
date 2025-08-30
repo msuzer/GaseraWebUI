@@ -61,7 +61,11 @@ class MeasurementController:
 
     def set_abort(self):
         with self.lock:
-            self.abort_flag = self.state != self.State.IDLE
+            if self.state != self.State.IDLE:
+                self.abort_flag = True
+                return self.log("Abort signal sent.")
+            else:
+                return self.log("Gasera already IDLE")
 
     def launch_tick_loop(self, interval=0.2):
         if hasattr(self, '_tick_thread') and self._tick_thread.is_alive():

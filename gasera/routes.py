@@ -38,8 +38,8 @@ def gasera_api_start_measurement():
 @gasera_bp.route("/api/measurement/abort", methods=["POST"])
 def gasera_api_abort_measurement():
     try:
-        measurement.set_abort()
-        return jsonify({"message": "[INFO] Abort signal sent."}), 200
+        msg = measurement.set_abort()
+        return jsonify({"message": msg}), 200
     except Exception as e:
         return jsonify({"message": f"[ERROR] Abort failed: {e}"}), 500
 

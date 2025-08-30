@@ -2,8 +2,8 @@
 
 <h4 class="mt-4">Command Log</h4>
 <div class="d-flex gap-2 mb-2">
-  <button class="btn btn-sm btn-outline-secondary" onclick="clearLog()">Clear</button>
-  <button class="btn btn-sm btn-outline-primary" onclick="saveLog()">Save as File</button>
+  <button class="btn btn-sm btn-outline-secondary" onclick="clearConsoleLog()">Clear</button>
+  <button class="btn btn-sm btn-outline-primary" onclick="saveConsoleLog()">Save as File</button>
 </div>
 <pre id="commandLog" class="bg-dark text-light p-3" style="height: 300px; overflow-y: auto; font-size: 0.85rem;"></pre>
 
@@ -103,22 +103,28 @@
   function logResponse(cmd, data) {
     const log = document.getElementById("commandLog");
     const time = new Date().toLocaleTimeString();
-    const msg = `[${time}] ${cmd}: ${data.string || JSON.stringify(data)}\n`;
+    const msg = `[${time}] ${data.string || JSON.stringify(data)}\n`;
     log.textContent += msg;
     log.scrollTop = log.scrollHeight;
   }
 
-  function clearLog() {
+  function clearConsoleLog() {
     document.getElementById("commandLog").textContent = "";
   }
 
-  function saveLog() {
+  function saveConsoleLog() {
     const text = document.getElementById("commandLog").textContent;
+
+    if (!text.length) {
+      alert("Command Log is empty.");
+      return;
+    }
+
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "gasera_log.txt";
+    a.download = "console_log.txt";
     a.click();
     URL.revokeObjectURL(url);
   }
