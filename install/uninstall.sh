@@ -1,24 +1,23 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 IFACE="end0"
-DHCP_CONF="/etc/dhcp/dhcpd.conf"
 
-echo "[1/7] Stopping and disabling app service..."
+echo "[1/8] Stop app service..."
 systemctl stop gasera.service 2>/dev/null || true
 systemctl disable gasera.service 2>/dev/null || true
 rm -f /etc/systemd/system/gasera.service
 systemctl daemon-reexec
 
-echo "[2/7] Removing Flask app from /opt..."
+echo "[2/8] Remove app files..."
 rm -rf /opt/GaseraWebUI
 
-echo "[3/7] Removing Nginx configuration..."
+echo "[3/8] Remove Nginx site..."
 rm -f /etc/nginx/sites-enabled/gasera.conf
 rm -f /etc/nginx/sites-available/gasera.conf
 systemctl restart nginx || true
 
-echo "[4/7] Removing GPIO udev rule & restoring permissions..."
+echo "[4/8] Remove GPIO udev rule & revert perms..."
 rm -f /etc/udev/rules.d/99-gpio.rules
 udevadm control --reload-rules
 udevadm trigger
@@ -26,21 +25,29 @@ for dev in /dev/gpiochip*; do
   [ -e "$dev" ] && chmod 600 "$dev" && chown root:root "$dev"
 done
 
-echo "[5/7] Remove DHCP LAN connection and restore previous NM state..."
+echo "[5/8] Remove NetworkManager connection..."
 if nmcli -t -f NAME con show | grep -qx "gasera-dhcp"; then
   nmcli con down gasera-dhcp || true
   nmcli con delete gasera-dhcp || true
   echo "Removed gasera-dhcp connection."
 fi
 
-echo "[6/7] Disable isc-dhcp-server and revert interface binding..."
+echo "[6/8] Disable DHCP server & remove override..."
 systemctl disable --now isc-dhcp-server 2>/dev/null || true
-# Comment out interface binding line to avoid surprises later
-if [ -f /etc/default/isc-dhcp-server ]; then
-  sed -i 's/^INTERFACESv4=.*/# INTERFACESv4=""/' /etc/default/isc-dhcp-server
-fi
-# Keep dhcpd.conf backup if we created one; do not delete packages
+OVR_DIR="/etc/systemd/system/isc-dhcp-server.service.d"
+rm -f "${OVR_DIR}/override.conf"
+rmdir "${OVR_DIR}" 2>/dev/null || true
+systemctl daemon-reload
 
-echo "[7/7] Done."
-echo "🧽 Uninstallation complete. System is clean for a fresh deploy."
+# Unbind interface in defaults to avoid surprises later
+if [ -f /etc/default/isc-dhcp-server ]; then
+  sed -i 's/^INTERFACESv4=.*/# INTERFACESv4=\"\"/' /etc/default/isc-dhcp-server
+fi
+
+echo "[7/8] Optionally re-enable dnsmasq (kept disabled by deploy)..."
+# Uncomment if you want it back:
+# systemctl enable --now dnsmasq
+
+echo "[8/8] Done."
+echo "🧽 Uninstall complete. System is clean for a fresh deploy."
 echo "   You can re-run deploy.sh to reinstall the app."

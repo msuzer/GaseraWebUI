@@ -1,6 +1,6 @@
 {
-  "measurement_duration": 640,
-  "motor_timeout": 8,
+  "measurement_duration": 600,
+  "motor_timeout": 10,
   "chart_update_interval": 3,
   "track_visibility": {
     "Acetaldehyde (CH\u2083CHO)": true,
