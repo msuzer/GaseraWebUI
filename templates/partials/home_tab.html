@@ -230,7 +230,11 @@
   }
 
   function alertResponse(data) {
-    alert(data.message);
+    if (!data.message) return;
+
+    if (data.message.startsWith("[ERROR]") || data.message.startsWith("[WARN]")) {
+      alert(data.message);
+    }
     fetchStatus();
   }
 

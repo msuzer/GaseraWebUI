@@ -30,15 +30,18 @@ def serve_command_map():
 @gasera_bp.route("/api/measurement/start", methods=["POST"])
 def gasera_api_start_measurement():
     try:
-        measurement.trigger()
-        return jsonify({"status": "started"})
+        msg = measurement.trigger()
+        return jsonify({"message": msg}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"message": f"Trigger error: {e}"}), 500
 
 @gasera_bp.route("/api/measurement/abort", methods=["POST"])
 def gasera_api_abort_measurement():
-    measurement.set_abort()
-    return jsonify({"ok": True, "message": "Abort signal sent."})
+    try:
+        measurement.set_abort()
+        return jsonify({"message": "[INFO] Abort signal sent."}), 200
+    except Exception as e:
+        return jsonify({"message": f"[ERROR] Abort failed: {e}"}), 500
 
 @gasera_bp.route("/api/measurement/state")
 def gasera_api_measurement_state():

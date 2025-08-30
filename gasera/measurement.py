@@ -1,4 +1,5 @@
 import time
+import datetime
 import threading
 from gpio.motor_control import motor
 from gpio.gpio_control import gpio
@@ -43,7 +44,7 @@ class MeasurementController:
         current = gpio.read(TRIGGER_PIN)
         if self._last_trigger_state == 1 and current == 0:
             if now - self._last_trigger_time >= DEBOUNCE_INTERVAL:
-                self.log("[TRIGGER] Falling edge with debounce passed.")
+                self.log("Falling edge with debounce passed.", level="TRIGGER")
                 self._last_trigger_time = now
                 self.trigger()
         self._last_trigger_state = current
@@ -51,12 +52,12 @@ class MeasurementController:
     def trigger(self):
         with self.lock:
             if self.state == self.State.IDLE:
-                self.log("[INFO] Trigger received. Scheduling measurement.")
                 self.task_triggered = True
-                return True
+                return self.log("Starting measurement sequence")
+            elif self.state == self.State.MEASURING:
+                return self.log("Measurement already in progress", level="WARN")
             else:
-                self.log("[WARN] Measurement already in progress.")
-                return False
+                return self.log(f"Cannot trigger measurement from state {self.state}", level="ERROR")
 
     def set_abort(self):
         with self.lock:
@@ -109,7 +110,7 @@ class MeasurementController:
                 self.wait_seconds -= MEASUREMENT_CHECK_INTERVAL
                 if self.wait_seconds > 0:
                     minutes, seconds = divmod(self.wait_seconds, 60)
-                    self.log(f"[INFO] Measuring... remaining: {minutes:02}:{seconds:02}")
+                    self.log(f"Measuring... remaining: {minutes:02}:{seconds:02}")
                     self.timers.restart("measurement_timer", MEASUREMENT_CHECK_INTERVAL)
                 else:
                     self.transition(self.State.STOP_MEASUREMENT, delay=1.0)
@@ -120,12 +121,12 @@ class MeasurementController:
                 self.state = self.State.MOVING_HOME
         elif self.state == self.State.MOVING_HOME:
             if motor.are_both_done():
-                self.log("[INFO] Measurement complete.")
+                self.log("Measurement complete.")
                 self.state = self.State.IDLE
                 self.abort_flag = False
 
     def transition(self, new_state, delay=0.0):
-        self.log(f"[STATE] Transitioning to: {new_state}")
+        self.log(f"Transitioning to: {new_state}", level="STATE")
         self.state = new_state
         if new_state == self.State.QUERY_STATUS:
             self.timers.start("device_status", delay)
@@ -140,11 +141,14 @@ class MeasurementController:
         gpio.dispatch(BUZZER_PIN, "set")
         time.sleep(0.5)
         gpio.dispatch(BUZZER_PIN, "reset")
-        self.log(f"[ERROR] {msg}")
+        self.log(msg, level="ERROR")
 
-    def log(self, msg):
-        self.last_event = f"{msg}"
-        print(self.last_event)
+    def log(self, msg: str, level: str = "INFO"):
+        """Tag, remember, print, and RETURN the message text (without timestamp)."""
+        tagged = f"[{level}] {msg}"
+        self.last_event = tagged
+        print(tagged, flush=True)
+        return tagged
 
     def get_status(self):
         return {
