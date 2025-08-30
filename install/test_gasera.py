@@ -1,15 +1,13 @@
 import socket
 import time
-
-HOST = '192.168.100.10'
-PORT = 8888
+from gasera.config import GASERA_IP_ADDRESS, GASERA_PORT_NUMBER
 
 query = "ASTS K0"
 framed = b'\x02 ' + query.encode() + b' ' + b'\x03'
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.settimeout(3)
-    s.connect((HOST, PORT))
+    s.connect((GASERA_IP_ADDRESS, GASERA_PORT_NUMBER))
     time.sleep(0.2)
     s.sendall(framed)
 

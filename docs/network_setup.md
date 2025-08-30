@@ -40,20 +40,56 @@ ip a show wlan0
 
 ---
 
-## 🌐 Configure Static IP on Ethernet (for Gasera)
+## 🌐 Configure DHCP Server on Ethernet (for Gasera)
 
-Assign static IP to `end0`:
+Assign static IP to OPiZ3 on `end0` and run a DHCP server:
 
 ```bash
-sudo ip addr add 192.168.100.1/24 dev end0
-sudo ip link set end0 up
+nmcli con add type ethernet ifname end0 con-name gasera-dhcp ipv4.method manual ipv4.addresses 192.168.0.1/24
+nmcli con up gasera-dhcp
 ```
 
-Or using NetworkManager:
+Install ISC DHCP server:
 
 ```bash
-nmcli con add type ethernet ifname end0 con-name gasera-static ip4 192.168.100.1/24
-nmcli con up gasera-static
+sudo apt update
+sudo apt install isc-dhcp-server -y
+```
+
+Configure DHCP to always give Gasera 192.168.0.100:
+
+Edit `/etc/dhcp/dhcpd.conf`:
+
+```bash
+default-lease-time 600;
+max-lease-time 7200;
+authoritative;
+
+
+subnet 192.168.0.0 netmask 255.255.255.0 {
+  range 192.168.0.100 192.168.0.100;
+  option routers 192.168.0.1;
+  option domain-name-servers 8.8.8.8;
+}
+```
+
+Bind DHCP to `end0`:
+
+```bash
+sudo nano /etc/default/isc-dhcp-server
+```
+
+Set:
+
+```bash
+INTERFACESv4="end0"
+```
+
+Start the service:
+
+```bash
+sudo systemctl enable isc-dhcp-server
+sudo systemctl restart isc-dhcp-server
 ```
 
 ---
@@ -63,7 +99,7 @@ nmcli con up gasera-static
 Check reachability:
 
 ```bash
-ping 192.168.100.10
+ping 192.168.0.100
 ```
 
 Install `netcat` for manual testing:
@@ -72,7 +108,7 @@ Install `netcat` for manual testing:
 sudo apt install netcat
 
 # Send sample ASTS request
-echo -e '\x02 ASTS K0 \x03' | nc 192.168.100.10 8888
+echo -e '\x02 ASTS K0 \x03' | nc 192.168.0.100 8888
 ```
 
 Alternatively, use the Python test script:

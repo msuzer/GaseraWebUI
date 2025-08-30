@@ -1,27 +1,59 @@
 # gasera_config.py
 
-# Set a Static IP on Gasera Itself
-# On the Gasera device: Set static IP: e.g. 192.168.100.10 Subnet mask: 255.255.255.0 Gateway: leave blank (or set to OPiZ3's IP like 192.168.100.1)
+# Enable DHCP on Gasera
 
-# On the OPiZ3, configure the Ethernet interface like this:
+# We’ll make OPiZ3 the gateway at 192.168.0.1/24.
 
-# sudo ip addr add 192.168.100.1/24 dev end0
-# sudo ip link set end0 up
+# nmcli con add type ethernet ifname end0 con-name gasera-dhcp ipv4.method manual ipv4.addresses 192.168.0.1/24
+# nmcli con up gasera-dhcp
 
-# Persistent config: (Debian/Armbian) If using NetworkManager (most likely):
-# Create a static Ethernet profile:
+# 📦 Step 3. Install DHCP Server
 
-# sudo nmcli con add type ethernet ifname end0 con-name gasera-static ip4 192.168.100.1/24
-# sudo nmcli con up gasera-static
+# If not installed yet:
+
+# sudo apt update
+# sudo apt install isc-dhcp-server -y
+
+# 📝 Step 4. Configure DHCP Server
+
+# Edit /etc/dhcp/dhcpd.conf:
+
+# default-lease-time 600;
+# max-lease-time 7200;
+# authoritative;
+
+# subnet 192.168.0.0 netmask 255.255.255.0 {
+#   range 192.168.0.100 192.168.0.100;   # only hand out .100
+#   option routers 192.168.0.1;
+#   option domain-name-servers 8.8.8.8;
+# }
+
+# This ensures Gasera always gets 192.168.0.100.
+
+# 📡 Step 5. Bind DHCP Server to end0
+
+# Edit /etc/default/isc-dhcp-server:
+
+# INTERFACESv4="end0"
+
+# ▶️ Step 6. Start DHCP Server
+# sudo systemctl restart isc-dhcp-server
+# sudo systemctl enable isc-dhcp-server
+
+# Check status:
+
+# sudo systemctl status isc-dhcp-server
 
 # should be able to ping the Gasera device now!
 
+# ping 192.168.0.100
+
 # Test with:
-# echo -e '\x02 ASTS K0 \x03' | nc 192.168.100.10 8888
+# echo -e '\x02 ASTS K0 \x03' | nc 192.168.0.100 8888
 # Responds: ASTS 0 2
 
 # IP or hostname of the Gasera device or simulator
-GASERA_IP_ADDRESS = "192.168.100.10"
+GASERA_IP_ADDRESS = "192.168.0.100"
 GASERA_PORT_NUMBER = 8888
 
 CAS_DETAILS = {
