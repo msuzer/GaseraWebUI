@@ -28,6 +28,7 @@ find "$APP_DIR" -type f ! -name "*.sh" -exec chmod 644 {} \;
 find "$APP_DIR" -type d -exec chmod 755 {} \;
 
 # fix prefs file perms
+PREFS_FILE="$APP_DIR/config/user_prefs.json"
 if [ -f "$PREFS_FILE" ]; then
   chgrp www-data "$PREFS_FILE"
   chmod 660 "$PREFS_FILE"
