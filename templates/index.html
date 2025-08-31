@@ -33,9 +33,14 @@
 
 <body class="container-fluid py-3">
 
-  <div class="mb-4">
-    <h2 class="text-center">Gasera Device UI</h2>
+<div class="row justify-content-center mb-4">
+  <div class="col-12 col-lg-8">
+    <div class="d-flex align-items-center justify-content-between px-3 px-md-4">
+      <h2 class="m-0">Gasera Device UI</h2>
+      <span id="connBadge" class="badge rounded-pill bg-secondary ms-3 text-nowrap">Checking…</span>
+    </div>
   </div>
+</div>
 
   <!-- Card Container for Page Content -->
   <div class="row justify-content-center">
@@ -94,6 +99,25 @@
   </div>
 
   <script>
+    function updateConnBadge(online) {
+      const b = document.getElementById('connBadge');
+      if (!b) return;
+      if (online) {
+        b.textContent = 'Gasera Online';
+        b.className = 'badge rounded-pill bg-success';
+      } else {
+        b.textContent = 'Gasera Offline';
+        b.className = 'badge rounded-pill bg-danger';
+      }
+    }
+
+    function pollConnectionStatus() {
+      fetch(API_PATHS.connection.status)
+        .then(r => r.ok ? r.json() : { online: false })
+        .then(s => updateConnBadge(!!(s && s.online)))
+        .catch(() => updateConnBadge(false));
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
       const resultsTab = document.querySelector('#results-tab');
       const motorTab = document.querySelector('#motor-tab');
@@ -114,6 +138,9 @@
           updateMotorStatus();
         }
       }
+
+      pollConnectionStatus();
+      setInterval(pollConnectionStatus, 2000);
 
     });
 

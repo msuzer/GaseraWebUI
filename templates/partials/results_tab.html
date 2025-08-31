@@ -25,6 +25,8 @@
       <h6 class="mb-3">Toggle Gas Components</h6>
       <div id="trackToggles" class="d-flex flex-wrap gap-3"></div>
     </div>
+
+    <div id="liveNotice" class="small text-muted mt-2" role="status" aria-live="polite"></div>
   </div>
 </div>
 
@@ -118,10 +120,21 @@
 	}
 
 	function fetchData() {
-		const dataUrlDummy = API_PATHS.data && API_PATHS.data.dummy;
+		// One line to unify real/dummy without repeating code:
+    	const dataUrlDummy = API_PATHS.data && API_PATHS.data.dummy;
 		const dataUrlLive = API_PATHS.data && API_PATHS.data.live;
-
+		// safeFetch(API_PATHS.data.dummy).then(res => res.json()).then(data => {
 		safeFetch(dataUrlLive).then(res => res.json()).then(data => {
+			// Non-data message from server → show one line and skip this tick
+			if (!data || data.message) {
+				const el = document.getElementById('liveNotice');
+				if (el) el.textContent = data && data.message ? data.message : 'No data';
+				return;
+			} else {
+				const el = document.getElementById('liveNotice');
+				if (el) el.textContent = '';
+			}
+			
 			const ts = data.timestamp;
 			if (typeof ts !== "number") return; // safety
 
@@ -140,8 +153,8 @@
 
 				// extend each existing dataset with a null placeholder for this moment
 				liveChart.data.datasets.forEach(ds => {
-				ds.data.push(null);
-				if (ds.data.length > MAX_POINTS) ds.data.shift();
+					ds.data.push(null);
+					if (ds.data.length > MAX_POINTS) ds.data.shift();
 				});
 			}
 
@@ -152,17 +165,18 @@
 			data.components.forEach(c => {
 				let ds = liveChart.data.datasets.find(d => d.label === c.label);
 				if (!ds) {
-				// new gas track appears → align its length with labels and set style/visibility
-				ds = {
-					label: c.label,
-					data: new Array(liveChart.data.labels.length).fill(null),
-					hidden: trackVisibility[c.label] === false,
-					borderColor: c.color || undefined,
-					backgroundColor: c.color || undefined,
-					tension: 0.3
-				};
-				liveChart.data.datasets.push(ds);
-				addedDataset = true;
+					// new gas track appears → align its length with labels and set style/visibility
+					ds = {
+						label: c.label,
+						data: new Array(liveChart.data.labels.length).fill(null),
+						hidden: trackVisibility[c.label] === false,
+						borderColor: c.color || undefined,
+						backgroundColor: c.color || undefined,
+						tension: 0.3
+					};
+					
+					liveChart.data.datasets.push(ds);
+					addedDataset = true;
 				}
 				// write the current ppm into the current slot.
 				// if duplicate, this overwrites the last value; if new timestamp, it replaces the null we just pushed.
@@ -172,67 +186,6 @@
 			if (addedDataset) renderTrackToggles();
 
 			lastStamp = ts;
-
-			// optional: show the server’s pretty text block if backend provides "string"
-			if (data.string) {
-				let block = document.getElementById('prettyBlock');
-				if (!block) {
-				const pre = document.createElement('pre');
-				pre.id = 'prettyBlock';
-				pre.className = 'mt-3 small text-muted';
-				pre.style.whiteSpace = 'pre-wrap';
-				document.querySelector('#liveChart').parentElement.appendChild(pre);
-				block = pre;
-				}
-				block.textContent = data.string;
-			}
-
-			liveChart.update();
-		});
-	}
-
-
-	function fetchDataOld() {
-		// One line to unify real/dummy without repeating code:
-    	const dataUrlDummy = API_PATHS.data && API_PATHS.data.dummy;
-		const dataUrlLive = API_PATHS.data && API_PATHS.data.live;
-		// safeFetch(API_PATHS.data.dummy).then(res => res.json()).then(data => {
-		safeFetch(dataUrlLive).then(res => res.json()).then(data => {
-			const ts = data.timestamp;
-      		if (typeof ts !== "number") return; // safety
-
-			// const label = new Date(data.timestamp * 1000).toLocaleTimeString();
-			const label = new Date(data.timestamp * 1000).toLocaleTimeString('en-GB', {
-				hour: '2-digit',
-				minute: '2-digit',
-				second: '2-digit',
-				hour12: false
-			});
-
-			let added = false;
-			// Loop through gas components
-			data.components.forEach((c) => {
-				const dataset = liveChart.data.datasets.find(d => d.label === c.label);
-				if (dataset) {
-					dataset.data.push(c.ppm);
-					if (dataset.data.length > 100) dataset.data.shift();
-				} else {
-					liveChart.data.datasets.push({
-						label: c.label,  // e.g., "Methane (CH₄)"
-						data: [c.ppm],
-						hidden: trackVisibility[c.label] === false,  // stored as false = hidden
-						borderColor: c.color || undefined,
-						backgroundColor: c.color || undefined,
-						tension: 0.3
-					});
-					added = true;
-				}
-			});
-
-			if (added) renderTrackToggles();
-
-			liveChart.data.labels.push(label);
-			if (liveChart.data.labels.length > 100) liveChart.data.labels.shift();
 
 			liveChart.update();
 		});

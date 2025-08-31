@@ -8,7 +8,6 @@ from .commands import GASERA_COMMANDS
 from datetime import datetime
 from .config import get_cas_details
 import random, time
-from email.utils import formatdate
 
 gasera_bp = Blueprint("gasera", __name__)
 
@@ -93,54 +92,27 @@ def gasera_api_data_dummy():
         "components": components
     })
 
-def _build_payload(timestamp: int, components):
-    """components is a list of dicts: {cas, ppm}, will enrich from config"""
-    from datetime import datetime
-    readable = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-    enriched = []
-    lines = []
-    for item in components:
-        cas = item["cas"]
-        ppm = float(f"{item['ppm']:.4f}")
-        meta = get_cas_details(cas) or {}
-        label = meta.get("label", cas)              # e.g., "Methane (CH₄, 74-82-8)"
-        color = meta.get("color", "#999999")
-        name  = meta.get("symbol", cas)             # e.g., "CH₄"
-
-        enriched.append({
-            "cas": cas,
-            "name": name,
-            "label": label,
-            "color": color,
-            "ppm": ppm,
-        })
-        lines.append(f"{label}: {ppm:.4f} ppm")
-
-    pretty = "Measurement Results (" + readable + "):\n" + "\n".join(lines)
-    return {"timestamp": timestamp, "readable": readable, "string": pretty, "components": enriched}
-
 @gasera_bp.route("/api/data/live")
 def gasera_api_data_live():
-    # try real device first
-    real = gasera.acon_proxy()
-    if isinstance(real, dict) and not real.get("error") and real.get("components"):
-        # real already returns timestamp/readable/components; add 'string' if missing
-        if "string" not in real:
-            # reconstruct 'string' from the returned components
-            lines = [f"{c['label']}: {float(c['ppm']):.4f} ppm" for c in real["components"]]
-            real["string"] = f"Measurement Results ({real['readable']}):\n" + "\n".join(lines)
-        return jsonify(real)
+    result = gasera.acon_proxy()
 
-    # fallback: dummy (random values), but **same shape** and per-record label meta
-    timestamp = int(time.time())
-    dummy_components = [
-        {"cas": "74-82-8",     "ppm": round(random.uniform(0.8, 1.2), 4)},
-        {"cas": "124-38-9",    "ppm": round(random.uniform(400, 430), 4)},
-        {"cas": "7732-18-5",   "ppm": round(random.uniform(7000, 7500), 4)},
-        {"cas": "10024-97-2",  "ppm": round(random.uniform(0.0, 0.5), 4)},
-        {"cas": "7664-41-7",   "ppm": round(random.uniform(0.001, 0.01), 4)},
-    ]
-    return jsonify(_build_payload(timestamp, dummy_components))
+    # Success path: dict, no error, has components
+    if isinstance(result, dict) and not result.get("error") and result.get("components"):
+        if "string" not in result:
+            lines = [f"{c['label']}: {float(c['ppm']):.4f} ppm" for c in result["components"]]
+            result["string"] = f"Measurement Results ({result['readable']}):\n" + "\n".join(lines)
+        return jsonify(result), 200
+
+    # Any non-data case → return a single-line message (200)
+    msg = "No measurement data yet"
+    if isinstance(result, dict) and result.get("error"):
+        msg = str(result["error"])
+    elif result is None:
+        msg = "No response from device"
+    elif not isinstance(result, dict):
+        msg = "Unexpected upstream response"
+
+    return jsonify({"message": msg}), 200
 
 @gasera_bp.route("/api/settings/read", methods=["GET"])
 def gasera_api_read_settings():
