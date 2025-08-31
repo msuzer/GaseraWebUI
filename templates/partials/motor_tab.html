@@ -3,15 +3,21 @@
         <div class="card text-bg-light h-100">
             <div class="card-body d-flex flex-column">
                 <h5 class="card-title">Motor 0</h5>
-                <p class="card-text">Control jog movement of Motor 0.</p>
                 <span id="status-0" class="badge bg-secondary mb-2">Loading...</span>
                 <div class="btn-group mb-3" role="group">
-                    <button class="btn btn-primary"
-                            onmousedown="jog(0, 'cw', 'start')"
-                            onmouseup="jog(0, 'cw', 'stop')">CW</button>
-                    <button class="btn btn-secondary"
-                            onmousedown="jog(0, 'ccw', 'start')"
-                            onmouseup="jog(0, 'ccw', 'stop')">CCW</button>
+                    <button type="button" class="btn btn-primary"
+                            onpointerdown="startJog(0, 'cw')"
+                            onpointerup="stopJog(0)"
+                            onpointerleave="stopJog(0)"
+                            onpointercancel="stopJog(0)"
+                            style="touch-action: none;">CW</button>
+
+                    <button type="button" class="btn btn-secondary"
+                            onpointerdown="startJog(0, 'ccw')"
+                            onpointerup="stopJog(0)"
+                            onpointerleave="stopJog(0)"
+                            onpointercancel="stopJog(0)"
+                            style="touch-action: none;">CCW</button>
                 </div>
             </div>
         </div>
@@ -21,20 +27,85 @@
         <div class="card text-bg-light h-100">
             <div class="card-body d-flex flex-column">
                 <h5 class="card-title">Motor 1</h5>
-                <p class="card-text">Control jog movement of Motor 1.</p>
                 <span id="status-1" class="badge bg-secondary mb-2">Loading...</span>
                 <div class="btn-group mb-3" role="group">
-                    <button class="btn btn-primary"
-                            onmousedown="jog(1, 'cw', 'start')"
-                            onmouseup="jog(1, 'cw', 'stop')">CW</button>
-                    <button class="btn btn-secondary"
-                            onmousedown="jog(1, 'ccw', 'start')"
-                            onmouseup="jog(1, 'ccw', 'stop')">CCW</button>
+                    <button type="button" class="btn btn-primary"
+                            onpointerdown="startJog(1, 'cw')"
+                            onpointerup="stopJog(1)"
+                            onpointerleave="stopJog(1)"
+                            onpointercancel="stopJog(1)"
+                            style="touch-action: none;">CW</button>
+
+                    <button type="button" class="btn btn-secondary"
+                            onpointerdown="startJog(1, 'ccw')"
+                            onpointerup="stopJog(1)"
+                            onpointerleave="stopJog(1)"
+                            onpointercancel="stopJog(1)"
+                            style="touch-action: none;">CCW</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+  /*
+    This file assumes you already have:
+      - function jog(motorId, direction, action) { ... }  // action: 'start' | 'stop'
+      - function updateMotorStatus() { ... }               // refresh status text/labels
+    If they exist elsewhere, we just call them from the wrappers below.
+  */
+
+  // prevent iOS blue highlight (optional)
+  try {
+    const style = document.createElement('style');
+    style.textContent = 'button{ -webkit-tap-highlight-color: transparent; }';
+    document.head.appendChild(style);
+  } catch {}
+
+  let activeJog = null; // { motorId, direction }
+
+  function startJog(motorId, direction) {
+    // if same jog already active, do nothing
+    if (activeJog && activeJog.motorId === motorId && activeJog.direction === direction) return;
+
+    // stop any ongoing jog first
+    if (activeJog) stopJog(motorId);
+
+    activeJog = { motorId, direction };
+    try {
+      if (typeof jog === 'function') {
+        jog(motorId, direction, 'start');
+      } else {
+        console.warn('jog() is not defined; implement jog(motorId, direction, action).');
+      }
+    } catch (e) {
+      console.error('Failed to start jog:', e);
+    }
+  }
+
+  function stopJog(motorId) {
+    if (!activeJog && activeJog.motorId === motorId) return;
+    activeJog = null;
+    try {
+      if (typeof jog === 'function') {
+        jog(motorId, 'cw', 'stop');
+      } else {
+        console.warn('jog() is not defined; implement jog(motorId, direction, action).');
+      }
+    } catch (e) {
+      console.error('Failed to stop jog:', e);
+    }
+  }
+
+  // Global safety: make sure we stop on any "finger up" / cancel / tab switch
+  // window.addEventListener('pointerup', stopJog, { passive: true });
+  // window.addEventListener('pointercancel', stopJog, { passive: true });
+  // window.addEventListener('blur', stopJog);
+  // document.addEventListener('visibilitychange', () => {
+  //  if (document.hidden) stopJog();
+  // });
+</script>
 
 <script>
   function jog(motorId, direction, action) {
