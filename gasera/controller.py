@@ -49,8 +49,11 @@ class GaseraController:
         except Exception as e:
             return {"error": f"Parse error: {e}"}
 
-        if acon_result.error or not acon_result.records:
-            return {"error": "Failed to parse ACON"}
+        if acon_result.error:
+            return {"error": "No Results present yet!"}
+        
+        if not acon_result.records:
+            return {"error": "No gas components detected!"}
 
         components = []
         for rec in acon_result.records:
