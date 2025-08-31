@@ -104,10 +104,10 @@
   function safeFetch(url, options = {}) {
     if (fetchFailed) return Promise.reject("Fetch disabled");
     return fetch(url, options).then(res => {
-      if (!res.ok) throw new Error("Status " + res.status);
+      if (!res.ok) throw new Error(`Status ${res.status} for ${url}`);
       return res;
     }).catch(err => {
-      console.error("Fetch failed:", err.message);
+      console.error(`Fetch failed for ${url}:`, err.message);
       fetchFailed = true;
       dataFetchTimers.forEach(clearInterval);
       showFetchErrorOnce();

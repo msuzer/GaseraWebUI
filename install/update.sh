@@ -1,27 +1,34 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "Updating deployed code..."
-cd /opt/GaseraWebUI || exit 1
+APP_DIR="/opt/GaseraWebUI"
 
-# Forcefully discard any local changes
+# Require root
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root (sudo $0)"
+  exit 1
+fi
+
+echo "🔄 Updating deployed code in $APP_DIR..."
+cd "$APP_DIR"
+
 echo "Resetting local changes..."
-sudo git reset --hard
+git reset --hard
 
-# Pull latest from GitHub
-sudo git pull origin main || {
-  echo "Git pull failed!"
+echo "Pulling latest from origin/main..."
+git pull --ff-only origin main || {
+  echo "❌ Git pull failed!"
   exit 1
 }
 
-# Make sure all install scripts are executable
-echo "🔧 Updating script permissions in /install..."
-sudo chmod +x install/*.sh
+echo "🔧 Normalizing script permissions..."
+# Keep *.sh executable, everything else 644
+find "$APP_DIR" -type f -name "*.sh" -exec chmod 755 {} \;
+find "$APP_DIR" -type f ! -name "*.sh" -exec chmod 644 {} \;
+find "$APP_DIR" -type d -exec chmod 755 {} \;
 
-# Optional: install updated dependencies
-# e.g., pip install -r requirements.txt
+echo "🔁 Restarting service..."
+systemctl restart gasera.service
 
-# Restart service (customize this)
-echo "Restarting service..."
-sudo systemctl restart gasera.service
-
-echo "Update complete."
+echo "✅ Update complete."
+echo "   If you encounter issues, try 'sudo systemctl status gasera.service' and 'sudo journalctl -u gasera.service'."
