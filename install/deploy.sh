@@ -93,18 +93,18 @@ default-lease-time 600;
 max-lease-time 7200;
 authoritative;
 
+# Reserved/static lease for the special device (by MAC)
+host gasera-special {
+  hardware ethernet ${GASERA_MAC};
+  fixed-address ${LEASE_IP};
+}
+
 subnet ${LAN_NET} netmask ${LAN_MASK} {
   option routers ${GATEWAY_IP};
   option domain-name-servers ${DNS1};
 
   # Regular dynamic pool (exclude .100 to avoid conflicts with reservation)
   range ${POOL_START} ${POOL_END};
-
-  # Reserved/static lease for the special device (by MAC)
-  host gasera-special {
-    hardware ethernet ${GASERA_MAC};
-    fixed-address ${LEASE_IP};
-  }
 }
 EOF
 
