@@ -27,6 +27,12 @@ find "$APP_DIR" -type f -name "*.sh" -exec chmod 755 {} \;
 find "$APP_DIR" -type f ! -name "*.sh" -exec chmod 644 {} \;
 find "$APP_DIR" -type d -exec chmod 755 {} \;
 
+# fix prefs file perms
+if [ -f "$PREFS_FILE" ]; then
+  chgrp www-data "$PREFS_FILE"
+  chmod 660 "$PREFS_FILE"
+fi
+
 echo "🔁 Restarting service..."
 systemctl restart gasera.service
 
