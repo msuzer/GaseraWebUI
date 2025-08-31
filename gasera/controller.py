@@ -1,11 +1,11 @@
 from typing import Optional
 from .protocol import GaseraProtocol, DeviceStatus, ErrorList, TaskList, ACONResult, MeasurementStatus, DeviceName, IterationNumber, NetworkSettings, DateTimeResult
 from .protocol import DeviceInfo, SelfTestResult, TaskParameters, SystemParameters, SamplerParameters, ParameterValue
-from .config import get_gas_name, get_color_for_cas
+from .config import get_gas_name, get_color_for_cas, get_cas_details
 from .tcp_client import tcp_client
 
 # Top-level (above GaseraController)
-class TaskList:
+class TaskIDs:
     CALIBRATION_TASK = "7"
     DEFAULT = "11"
     FLUSH = "12"
@@ -39,24 +39,42 @@ class GaseraController:
         return is_now
 
     def acon_proxy(self) -> dict:
-        command = GaseraProtocol().build_command("ACON")
+        command = self.proto.build_command("ACON")
         response = tcp_client.send_command(command)
-        if response is not None:
-            acon_result = GaseraProtocol().parse_acon(response)
-            if acon_result:
-                return {
-                    "timestamp": acon_result.timestamp,
-                    "readable": acon_result.readable_time,
-                    "components": [
-                        {
-                            "cas": rec.cas,
-                            "ppm": rec.ppm,
-                            "label": f"{get_gas_name(rec.cas)} ({rec.cas})" if get_gas_name(rec.cas) else rec.cas,
-                            "color": get_color_for_cas(rec.cas)
-                        } for rec in acon_result.records
-                    ]
-                }
-        return {"error": "Failed to parse ACON"}
+
+        if response is None:
+            return {"error": "No response from device"}
+        try:
+            acon_result = self.proto.parse_acon(response)
+        except Exception as e:
+            return {"error": f"Parse error: {e}"}
+
+        if acon_result.error or not acon_result.records:
+            return {"error": "Failed to parse ACON"}
+
+        components = []
+        for rec in acon_result.records:
+            meta = get_cas_details(rec.cas) or {}
+            label = meta.get("label") or (f"{get_gas_name(rec.cas)} ({rec.cas})" if get_gas_name(rec.cas) else rec.cas)
+            color = meta.get("color") or get_color_for_cas(rec.cas) or "#999999"
+            name  = meta.get("symbol") or rec.cas
+            components.append({
+                "cas": rec.cas,
+                "name": name,
+                "label": label,
+                "color": color,
+                "ppm": rec.ppm,
+            })
+
+        # include exact pretty block for UI (optional but handy)
+        pretty = acon_result.as_string()
+
+        return {
+            "timestamp": acon_result.timestamp,
+            "readable": acon_result.readable_time,
+            "string": pretty,
+            "components": components
+        }
 
     def get_device_status(self) -> Optional[DeviceStatus]:
         cmd = self.proto.ask_current_status()
@@ -80,9 +98,9 @@ class GaseraController:
 
     def start_measurement(self, task_id: Optional[str] = None) -> Optional[str]:
         if not task_id:
-            task_id = TaskList.DEFAULT
+            task_id = TaskIDs.DEFAULT
 
-        if task_id not in TaskList.all_ids():
+        if task_id not in TaskIDs.all_ids():
             return "[ERROR] Invalid task id (allowed: 7, 11, 12, 13)"
 
         cmd = self.proto.start_measurement_by_id(task_id)
@@ -93,7 +111,7 @@ class GaseraController:
         if not task_name:
             task_name = "DEFAULT"
 
-        if task_name not in TaskList.all_names():
+        if task_name not in TaskIDs.all_names():
             return "[ERROR] Invalid task name (allowed: CALIBRATION_TASK, DEFAULT, FLUSH, MTEST2)"
 
         cmd = self.proto.start_measurement_by_name(task_name)

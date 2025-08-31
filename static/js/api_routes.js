@@ -8,8 +8,8 @@ API_PATHS = {
         "status": "/gasera/api/connection_status"
     },
     "data": {
-        "server": "/gasera/api/data/server",
-        "dummy": "/gasera/api/data/dummy"
+        "dummy": "/gasera/api/data/dummy",
+        "live": "/gasera/api/data/live"
     },
     "settings": {
         "read": "/gasera/api/settings/read",

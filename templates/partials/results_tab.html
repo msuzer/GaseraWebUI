@@ -30,6 +30,8 @@
 
 <script>
 	let trackVisibility = {};
+	let lastStamp = null;          // ← remember last device timestamp we plotted
+  	const MAX_POINTS = 100;        // ← keep the same cap you used implicitly
 
     const ctx = document.getElementById('liveChart').getContext('2d');
     const liveChart = new Chart(ctx, {
@@ -116,7 +118,89 @@
 	}
 
 	function fetchData() {
-		safeFetch(API_PATHS.data.dummy).then(res => res.json()).then(data => {
+		const dataUrlDummy = API_PATHS.data && API_PATHS.data.dummy;
+		const dataUrlLive = API_PATHS.data && API_PATHS.data.live;
+
+		safeFetch(dataUrlLive).then(res => res.json()).then(data => {
+			const ts = data.timestamp;
+			if (typeof ts !== "number") return; // safety
+
+			// Build label from device timestamp (not browser now())
+			const label = new Date(ts * 1000).toLocaleTimeString('en-GB', {
+				hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+			});
+
+			const isDuplicate = (lastStamp !== null && ts === lastStamp);
+			let addedDataset = false;
+
+			if (!isDuplicate) {
+				// new measurement moment → push a new label
+				liveChart.data.labels.push(label);
+				if (liveChart.data.labels.length > MAX_POINTS) liveChart.data.labels.shift();
+
+				// extend each existing dataset with a null placeholder for this moment
+				liveChart.data.datasets.forEach(ds => {
+				ds.data.push(null);
+				if (ds.data.length > MAX_POINTS) ds.data.shift();
+				});
+			}
+
+			// index of the "current" slot (last label)
+			const idx = liveChart.data.labels.length - 1;
+
+			// Upsert values for all reported components
+			data.components.forEach(c => {
+				let ds = liveChart.data.datasets.find(d => d.label === c.label);
+				if (!ds) {
+				// new gas track appears → align its length with labels and set style/visibility
+				ds = {
+					label: c.label,
+					data: new Array(liveChart.data.labels.length).fill(null),
+					hidden: trackVisibility[c.label] === false,
+					borderColor: c.color || undefined,
+					backgroundColor: c.color || undefined,
+					tension: 0.3
+				};
+				liveChart.data.datasets.push(ds);
+				addedDataset = true;
+				}
+				// write the current ppm into the current slot.
+				// if duplicate, this overwrites the last value; if new timestamp, it replaces the null we just pushed.
+				ds.data[idx] = c.ppm;
+			});
+
+			if (addedDataset) renderTrackToggles();
+
+			lastStamp = ts;
+
+			// optional: show the server’s pretty text block if backend provides "string"
+			if (data.string) {
+				let block = document.getElementById('prettyBlock');
+				if (!block) {
+				const pre = document.createElement('pre');
+				pre.id = 'prettyBlock';
+				pre.className = 'mt-3 small text-muted';
+				pre.style.whiteSpace = 'pre-wrap';
+				document.querySelector('#liveChart').parentElement.appendChild(pre);
+				block = pre;
+				}
+				block.textContent = data.string;
+			}
+
+			liveChart.update();
+		});
+	}
+
+
+	function fetchDataOld() {
+		// One line to unify real/dummy without repeating code:
+    	const dataUrlDummy = API_PATHS.data && API_PATHS.data.dummy;
+		const dataUrlLive = API_PATHS.data && API_PATHS.data.live;
+		// safeFetch(API_PATHS.data.dummy).then(res => res.json()).then(data => {
+		safeFetch(dataUrlLive).then(res => res.json()).then(data => {
+			const ts = data.timestamp;
+      		if (typeof ts !== "number") return; // safety
+
 			// const label = new Date(data.timestamp * 1000).toLocaleTimeString();
 			const label = new Date(data.timestamp * 1000).toLocaleTimeString('en-GB', {
 				hour: '2-digit',
@@ -125,6 +209,7 @@
 				hour12: false
 			});
 
+			let added = false;
 			// Loop through gas components
 			data.components.forEach((c) => {
 				const dataset = liveChart.data.datasets.find(d => d.label === c.label);
@@ -140,8 +225,11 @@
 						backgroundColor: c.color || undefined,
 						tension: 0.3
 					});
+					added = true;
 				}
 			});
+
+			if (added) renderTrackToggles();
 
 			liveChart.data.labels.push(label);
 			if (liveChart.data.labels.length > 100) liveChart.data.labels.shift();

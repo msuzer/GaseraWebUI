@@ -6,7 +6,9 @@ from system.preferences import KEY_MEASUREMENT_DURATION
 from .controller import gasera
 from .commands import GASERA_COMMANDS
 from datetime import datetime
+from .config import get_cas_details
 import random, time
+from email.utils import formatdate
 
 gasera_bp = Blueprint("gasera", __name__)
 
@@ -51,32 +53,94 @@ def gasera_api_measurement_state():
 def gasera_api_connection_status():
     return jsonify({"online": gasera.check_device_connection()})
 
-@gasera_bp.route("/api/data/server")
-def gasera_api_data_server():
-    return jsonify(gasera.acon_proxy())
-
 @gasera_bp.route("/api/data/dummy")
 def gasera_api_data_dummy():
     timestamp = int(time.time())
-    components = [
-        {"cas": "74-82-8",     "name": "CH₄",       "label": "Methane (CH₄)",         "color": "#1f77b4", "ppm": round(random.uniform(0.8, 1.2), 3)},
-        {"cas": "124-38-9",    "name": "CO₂",       "label": "Carbon Dioxide (CO₂)",  "color": "#ff7f0e", "ppm": round(random.uniform(400, 430), 2)},
-        {"cas": "7732-18-5",   "name": "H₂O",       "label": "Water Vapor (H₂O)",     "color": "#2ca02c", "ppm": round(random.uniform(7000, 7500), 1)},
-        {"cas": "630-08-0",    "name": "CO",        "label": "Carbon Monoxide (CO)",  "color": "#d62728", "ppm": round(random.uniform(0.0, 1.0), 3)},
-        {"cas": "10024-97-2",  "name": "N₂O",       "label": "Nitrous Oxide (N₂O)",    "color": "#9467bd", "ppm": round(random.uniform(0.0, 0.5), 2)},
-        {"cas": "7664-41-7",   "name": "NH₃",       "label": "Ammonia (NH₃)",          "color": "#8c564b", "ppm": round(random.uniform(0.001, 0.01), 4)},
-        {"cas": "7446-09-5",   "name": "SO₂",       "label": "Sulfur Dioxide (SO₂)",  "color": "#e377c2", "ppm": round(random.uniform(0.0, 0.5), 2)},
-        {"cas": "7782-44-7",   "name": "O₂",        "label": "Oxygen (O₂)",            "color": "#7f7f7f", "ppm": round(random.uniform(200000, 210000), 0)},
-        {"cas": "75-07-0",     "name": "CH₃CHO",    "label": "Acetaldehyde (CH₃CHO)", "color": "#bcbd22", "ppm": round(random.uniform(0.0, 0.1), 3)},
-        {"cas": "64-17-5",     "name": "C₂H₅OH",    "label": "Ethanol (C₂H₅OH)",       "color": "#17becf", "ppm": round(random.uniform(0.0, 0.5), 2)},
-        {"cas": "67-56-1",     "name": "CH₃OH",     "label": "Methanol (CH₃OH)",       "color": "#a05d56", "ppm": round(random.uniform(0.0, 0.5), 2)},
+    # choose some CAS you like; keep your existing set if you want
+    dummy_specs = [
+        ("74-82-8",  round(random.uniform(0.8, 1.2), 4)),      # CH₄
+        ("124-38-9", round(random.uniform(400, 430), 4)),      # CO₂
+        ("7732-18-5",round(random.uniform(7000, 7500), 4)),    # H₂O
+        ("10024-97-2",round(random.uniform(0.0, 0.5), 4)),     # N₂O
+        ("7664-41-7",round(random.uniform(0.001, 0.01), 4)),   # NH₃
     ]
+
+    components = []
+    lines = []
+    readable = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+
+    for cas, ppm in dummy_specs:
+        d = get_cas_details(cas) or {}
+        symbol = d.get("symbol") or cas
+        label  = d.get("label") or cas
+        color  = d.get("color") or "#999999"
+        components.append({
+            "cas": cas,
+            "name": symbol,   # e.g., "CH₄"
+            "label": label,   # e.g., "Methane (CH₄, 74-82-8)"
+            "color": color,
+            "ppm": float(f"{ppm:.4f}"),
+        })
+        # build the pretty line exactly like ACONResult.as_string()
+        lines.append(f"{label}: {ppm:.4f} ppm")
+
+    pretty = "Measurement Results (" + readable + "):\n" + "\n".join(lines)
 
     return jsonify({
         "timestamp": timestamp,
-        "readable": datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S"),
+        "readable": readable,
+        "string": pretty,        # ← identical shape/format to real endpoint
         "components": components
     })
+
+def _build_payload(timestamp: int, components):
+    """components is a list of dicts: {cas, ppm}, will enrich from config"""
+    from datetime import datetime
+    readable = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+    enriched = []
+    lines = []
+    for item in components:
+        cas = item["cas"]
+        ppm = float(f"{item['ppm']:.4f}")
+        meta = get_cas_details(cas) or {}
+        label = meta.get("label", cas)              # e.g., "Methane (CH₄, 74-82-8)"
+        color = meta.get("color", "#999999")
+        name  = meta.get("symbol", cas)             # e.g., "CH₄"
+
+        enriched.append({
+            "cas": cas,
+            "name": name,
+            "label": label,
+            "color": color,
+            "ppm": ppm,
+        })
+        lines.append(f"{label}: {ppm:.4f} ppm")
+
+    pretty = "Measurement Results (" + readable + "):\n" + "\n".join(lines)
+    return {"timestamp": timestamp, "readable": readable, "string": pretty, "components": enriched}
+
+@gasera_bp.route("/api/data/live")
+def gasera_api_data_live():
+    # try real device first
+    real = gasera.acon_proxy()
+    if isinstance(real, dict) and not real.get("error") and real.get("components"):
+        # real already returns timestamp/readable/components; add 'string' if missing
+        if "string" not in real:
+            # reconstruct 'string' from the returned components
+            lines = [f"{c['label']}: {float(c['ppm']):.4f} ppm" for c in real["components"]]
+            real["string"] = f"Measurement Results ({real['readable']}):\n" + "\n".join(lines)
+        return jsonify(real)
+
+    # fallback: dummy (random values), but **same shape** and per-record label meta
+    timestamp = int(time.time())
+    dummy_components = [
+        {"cas": "74-82-8",     "ppm": round(random.uniform(0.8, 1.2), 4)},
+        {"cas": "124-38-9",    "ppm": round(random.uniform(400, 430), 4)},
+        {"cas": "7732-18-5",   "ppm": round(random.uniform(7000, 7500), 4)},
+        {"cas": "10024-97-2",  "ppm": round(random.uniform(0.0, 0.5), 4)},
+        {"cas": "7664-41-7",   "ppm": round(random.uniform(0.001, 0.01), 4)},
+    ]
+    return jsonify(_build_payload(timestamp, dummy_components))
 
 @gasera_bp.route("/api/settings/read", methods=["GET"])
 def gasera_api_read_settings():
