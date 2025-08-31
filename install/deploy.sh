@@ -49,19 +49,19 @@ if [ -f "$PREFS_FILE" ]; then
 fi
 
 echo "[4/10] Install systemd service for app..."
-cp "$APP_DIR/gasera.service" /etc/systemd/system/gasera.service
+cp "$APP_DIR/install/gasera.service" /etc/systemd/system/gasera.service
 systemctl daemon-reexec
 systemctl enable gasera.service
 systemctl restart gasera.service
 
 echo "[5/10] Install Nginx config..."
-cp "$APP_DIR/gasera.conf" /etc/nginx/sites-available/gasera.conf
+cp "$APP_DIR/install/gasera.conf" /etc/nginx/sites-available/gasera.conf
 ln -sf /etc/nginx/sites-available/gasera.conf /etc/nginx/sites-enabled/gasera.conf
 rm -f /etc/nginx/sites-enabled/default
 systemctl restart nginx
 
 echo "[6/10] GPIO udev + permissions..."
-cp "$APP_DIR/99-gpio.rules" /etc/udev/rules.d/99-gpio.rules
+cp "$APP_DIR/install/99-gpio.rules" /etc/udev/rules.d/99-gpio.rules
 groupadd -f gpio
 usermod -aG gpio www-data
 udevadm control --reload-rules
