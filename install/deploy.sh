@@ -8,7 +8,7 @@ LAN_NET="192.168.0.0"
 LAN_MASK="255.255.255.0"
 GATEWAY_IP="192.168.0.1"
 DNS1="8.8.8.8"
-POOL_START="192.168.0.50"
+POOL_START="192.168.0.101"
 POOL_END="192.168.0.200"
 
 GASERA_MAC="00:e0:4b:6e:82:c0"   # <-- set your device's MAC here (lowercase recommended)
@@ -75,6 +75,8 @@ if nmcli -t -f NAME con show | grep -qx "gasera-dhcp"; then
 else
   nmcli con add type ethernet ifname "${IFACE}" con-name gasera-dhcp ipv4.method manual ipv4.addresses "${LAN_ADDR}"
 fi
+nmcli con mod gasera-dhcp ipv4.never-default yes
+nmcli con mod gasera-dhcp ipv4.route-metric 500
 nmcli con up gasera-dhcp
 
 echo "[8/10] Configure ISC DHCP (bind to ${IFACE}, pool + reserved IP ${LEASE_IP} for MAC)..."
