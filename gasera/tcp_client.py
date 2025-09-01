@@ -93,7 +93,7 @@ class GaseraTCPClient:
         with self._lock:
             self.disconnect()  # ensure clean start
             try:
-                _log("INFO", f"Connecting to {self.host}:{self.port} ct={self.connect_timeout}s io={self.io_timeout}s")
+                _log("DEBUG", f"Connecting to {self.host}:{self.port} ct={self.connect_timeout}s io={self.io_timeout}s")
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 # Optional keepalive (ignore if unsupported)
                 try:
@@ -105,7 +105,7 @@ class GaseraTCPClient:
                 sock.settimeout(self.io_timeout)  # slice timeout for I/O
                 self._sock = sock
                 self._flip_connected(True)
-                _log("INFO", "Connection successful.")
+                _log("DEBUG", "Connection successful.")
                 return True
             except (socket.timeout, OSError) as e:
                 _log("WARN", f"Connection failed: {e}")

@@ -127,7 +127,14 @@
   function appendLog(message) {
     const logBox = document.getElementById("logBox");
     const entry = document.createElement("div");
-    const now = new Date().toLocaleTimeString();
+
+    const now = new Date().toLocaleTimeString([], { 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      second: "2-digit", 
+      hour12: false 
+    });
+
     entry.textContent = `[${now}] ${message}`;
     logBox.appendChild(entry);
     logBox.scrollTop = logBox.scrollHeight;
