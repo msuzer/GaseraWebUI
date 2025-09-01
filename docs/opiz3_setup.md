@@ -1,8 +1,8 @@
 # 🟠 Orange Pi Zero 3 – First Boot Setup via UART and Ethernet
 
 This guide walks you through setting up your **Orange Pi Zero 3 (OPiZ3)** from scratch, using:
-- a prepared `.img.xz` OS image. I used the image prepared by [stas2z](https://github.com/stas2z), found on [GitHub Link](https://github.com/stas2z/orange-pi-images/releases/download/0.2-bookworm/Orangepizero3_1.0.2_debian_bookworm_server_linux6.1.31.img.xz)
-- UART serial connection for console access
+- official Debian image (with kernel 6.1) which can be found on [http://www.orangepi.org/](http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/service-and-support/Orange-Pi-Zero-3.html)
+- Either a monitor and hdmi cable for initial setup using GUI or UART serial module for console access, prior to SSH
 - Ethernet for SSH login
 
 ---
@@ -10,7 +10,7 @@ This guide walks you through setting up your **Orange Pi Zero 3 (OPiZ3)** from s
 ## 📥 Step 1: Burn the OS Image to microSD
 
 ### 🔧 Requirements
-- `.img.xz` image file (e.g., `orangepi_debian.img.xz`)
+- Image file (e.g., `Orangepizero3_1.0.4_debian_bookworm_desktop_xfce_linux6.1.31.7z`)
 - SD card reader
 - Debian-based Linux system
 
@@ -32,21 +32,9 @@ This guide walks you through setting up your **Orange Pi Zero 3 (OPiZ3)** from s
    Using correct path to image and sd-card path:
 
    ```bash
-   xz -d /path/to/image.img.xz
-   sudo dd if=/path/to/image.img of=/dev/sdb bs=8M status=progress conv=fsync
-   ```
-
-   Or if your image has extension 7z:
-
-   ```bash
    sudo apt install p7zip-full
-   7z x /path/to/image.7z
-   ```
-
-   Or do all at once:
-
-   ```bash
-   xz -dc /path/to/image.img.xz | sudo dd of=/dev/sdb bs=8M status=progress conv=fsync
+   7z x Orangepizero3_1.0.4_debian_bookworm_desktop_xfce_linux6.1.31.7z
+   sudo dd if=Orangepizero3_1.0.4_debian_bookworm_desktop_xfce_linux6.1.31.img of=/dev/sdb bs=8M status=progress conv=fsync
    ```
 
 4. Flush buffers and eject the card:
@@ -58,7 +46,17 @@ This guide walks you through setting up your **Orange Pi Zero 3 (OPiZ3)** from s
 
 ---
 
-## 🔌 Step 2: Connect Hardware
+## 🔌 Step 2: Connections & Hardware
+
+- Insert the microSD card into OPiZ3.
+- Connect Ethernet cable to router or PC with DHCP.
+- Connect a Serial Module and continue to Step 3 or
+- Connect to a monitor via mini HDMI cable and continue Step 4
+- Plug in power to boot the board.
+
+---
+
+## 📡 Step 3: Serial Console Access with Minicom
 
 ### UART Wiring (3 Pins Only)
 | OPiZ3 Pin | USB-UART Module |
@@ -68,15 +66,6 @@ This guide walks you through setting up your **Orange Pi Zero 3 (OPiZ3)** from s
 | GND       | GND             |
 
 > 🛑 **Do not connect 5V or 3.3V pins** to avoid damaging the board.
-
-### Additional Connections:
-- Insert the microSD card into OPiZ3.
-- Connect Ethernet cable to router or PC with DHCP.
-- Plug in power to boot the board.
-
----
-
-## 📡 Step 3: Serial Console Access with Minicom
 
 1. Identify UART device:
 
@@ -116,7 +105,7 @@ Once logged in:
 ip a
 ```
 
-Find the line for `eth0` or `end0`:
+Find the line for `end0`:
 
 ```
 inet 192.168.1.123/24 ...
@@ -143,6 +132,16 @@ sudo systemctl start ssh
 
 ---
 
+## 🛠️ (Optional) Disable GUI for resource savings
+
+You may disable GUI if you prefer SSH. Just be reminded that you may need to set static IP for OPiZ3.
+
+```bash
+sudo systemctl set-default multi-user.target
+```
+
+---
+
 ## ✅ Success!
 
 You are now connected to your OPiZ3 via SSH over Ethernet. UART can now be disconnected if no longer needed.
@@ -159,12 +158,6 @@ You are now connected to your OPiZ3 via SSH over Ethernet. UART can now be disco
   sudo systemctl set-default graphical.target
   ```
 
-  - Disable GUI:
-
-  ```bash
-  sudo systemctl set-default multi-user.target
-  ```
-
 - Use `nmap` to scan your network for the OPiZ3 if you can't find the IP:
 
   ```bash
@@ -176,16 +169,6 @@ You are now connected to your OPiZ3 via SSH over Ethernet. UART can now be disco
   ```bash
   sudo minicom -s
   ```
-
----
-
-## 🧪 Bonus: Verify SD Card Write (Optional)
-
-```bash
-sudo cmp <(xz -dc /path/to/image.img.xz) /dev/sdX
-```
-
-No output = successful write.
 
 ---
 
