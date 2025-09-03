@@ -151,6 +151,28 @@ echo "   You can test with: echo -e '\x02 ASTS K0 \x03' | nc ${LEASE_IP} 8888"
 echo "   You can re-run this script to fix any issues."
 
 # --- Post-deploy recommendation ---
+# --- Post-deploy maintenance prompts ---
+echo
+echo "------------------------------------------------------------"
+echo "You can now (optionally) run a safe disk cleanup."
+echo "------------------------------------------------------------"
+
+# 1) Offer cleanup
+read -r -p "Run disk cleanup now (logs/caches/tmp)? [y/N] " ans_clean
+if [[ "${ans_clean:-}" =~ ^[Yy]$ ]]; then
+  if [[ -x "./sd_clean.sh" ]]; then
+    echo
+    read -r -p "How many days of journal logs to keep? [default: 2] " keepd
+    keepd="${keepd:-2}"
+    sudo ./sd_clean.sh --yes --keep-days "$keepd"
+  else
+    echo "sd_clean.sh not found or not executable. Skipping cleanup."
+  fi
+else
+  echo "Skipped disk cleanup."
+fi
+
+# 2) Offer SD longevity tweaks
 echo
 echo "------------------------------------------------------------"
 echo "To extend SD card life, you can apply system tweaks now."
