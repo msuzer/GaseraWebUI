@@ -44,6 +44,7 @@
       const body = card.querySelector(`#body-${sectionId}`);
       for (const cmd of commands) {
         const cmdId = `cmd-${cmd.name}`;
+        if (cmd.show === false) continue;
         const hasArgs = Array.isArray(cmd.args) && cmd.args.length > 0;
         const tooltip = cmd.help || cmd.description || "";
         const inputGroup = [];
