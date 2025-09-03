@@ -149,3 +149,4 @@ ip addr show dev "${IFACE}" || true
 echo "✅ Deploy complete. Gasera should receive ${LEASE_IP} on ${IFACE}. Access its service at http://${LEASE_IP}:8888/"
 echo "   You can test with: echo -e '\x02 ASTS K0 \x03' | nc ${LEASE_IP} 8888"
 echo "   You can re-run this script to fix any issues."
+echo "   You may also run sd_life_tweaks.sh to reduce SD card wear (recommended)."
