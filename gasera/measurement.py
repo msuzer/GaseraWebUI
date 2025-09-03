@@ -9,6 +9,7 @@ from system.preferences import KEY_MEASUREMENT_DURATION
 from config.constants import (TRIGGER_PIN, BUZZER_PIN, DEBOUNCE_INTERVAL, MEASUREMENT_CHECK_INTERVAL, DEFAULT_MEASUREMENT_DURATION)
 from .async_timer_bank import AsyncTimerBank
 from .controller import GaseraController
+from buzzer.buzzer_facade import buzzer
 
 class MeasurementController:
     class State:
@@ -110,11 +111,11 @@ class MeasurementController:
                     self.wait_seconds = self.measurement_duration_sec
                     self.transition(self.State.GASERA_MEASURES, delay=MEASUREMENT_CHECK_INTERVAL)
                 else:
-                    self.notify_error("Measurement start failed")
+                    self.log("Measurement start failed", level="ERROR")
                     self.transition(self.State.STOP_MEASUREMENT, delay=2.0)
         elif self.state == self.State.GASERA_MEASURES:
             if self.abort_flag:
-                self.log("Abort requested! Stopping measurement...", level="STATE")
+                self.log("Abort requested! Stopping measurement...", level="WARN")
                 self.transition(self.State.STOP_MEASUREMENT, delay=2.0)
                 return
             if self.timers.expired("measurement_timer"):
@@ -132,7 +133,7 @@ class MeasurementController:
                 if resp:
                     self.log("Measurement stopped.", level="STATE")
                 else:
-                    self.log("Measurement stop failed!", level="WARN")
+                    self.log("Measurement stop failed!", level="ERROR")
                 self.log("Returning to home position...", level="STATE")
                 motor.start_both("ccw")
                 self.transition(self.State.MOVING_HOME, delay=1.0)
@@ -154,17 +155,27 @@ class MeasurementController:
         elif new_state == self.State.STOP_MEASUREMENT:
             self.timers.start("abort_wait", delay)
 
-    def notify_error(self, msg):
-        gpio.dispatch(BUZZER_PIN, "set")
-        time.sleep(0.5)
-        gpio.dispatch(BUZZER_PIN, "reset")
-        self.log(msg, level="ERROR")
-
     def log(self, msg: str, level: str = "INFO"):
         """Tag, remember, print, and RETURN the message text (without timestamp)."""
         tagged = f"[{level}] {msg}"
         self.last_event = tagged
         print(tagged, flush=True)
+
+        # --- Tone selection ---
+        try:
+            match level.upper():
+                case "INFO":
+                    buzzer.play("ok")       # or another mild tone
+                case "WARN":
+                    buzzer.play("warning")  # longer beep
+                case "ERROR":
+                    buzzer.play("error")    # urgent/error tone
+                case _:
+                    pass  # no tone
+        except Exception:
+            # never let buzzer issues break logging
+            pass
+
         return tagged
     
     def get_status(self):
