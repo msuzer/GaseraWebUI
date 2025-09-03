@@ -149,4 +149,29 @@ ip addr show dev "${IFACE}" || true
 echo "✅ Deploy complete. Gasera should receive ${LEASE_IP} on ${IFACE}. Access its service at http://${LEASE_IP}:8888/"
 echo "   You can test with: echo -e '\x02 ASTS K0 \x03' | nc ${LEASE_IP} 8888"
 echo "   You can re-run this script to fix any issues."
-echo "   You may also run sd_life_tweaks.sh to reduce SD card wear (recommended)."
+
+# --- Post-deploy recommendation ---
+echo
+echo "------------------------------------------------------------"
+echo "To extend SD card life, you can apply system tweaks now."
+echo "These tweaks will:"
+echo "  • Add noatime/commit=60 to ext4 root"
+echo "  • Mount /var/log, /tmp, /var/tmp in RAM"
+echo "  • Make journald logs volatile (lost on reboot)"
+echo "  • Disable disk swap (optionally enable zram)"
+echo "  • Disable coredumps"
+echo
+echo "An undo script will be created automatically."
+echo "------------------------------------------------------------"
+read -r -p "Do you want to run SD card tweaks now? [y/N] " ans
+
+if [[ "${ans:-}" =~ ^[Yy]$ ]]; then
+    if [[ -x "./sd_life_tweaks.sh" ]]; then
+        sudo ./sd_life_tweaks.sh
+    else
+        echo "sd_life_tweaks.sh not found or not executable!"
+        echo "Make sure it's included with your deployment package."
+    fi
+else
+    echo "Skipped SD card tweaks. You can run ./sd_life_tweaks.sh later."
+fi
