@@ -1,23 +1,14 @@
 from flask import Blueprint, Response, json, request, jsonify
-from gasera import GaseraCommandDispatcher
-from gasera import MeasurementController
 from system.preferences import prefs
-from system.preferences import KEY_MEASUREMENT_DURATION
 from .controller import gasera
+from .dispatcher import dispatcher
+from .measurement import measurement
 from .commands import GASERA_COMMANDS
 from datetime import datetime
 from .config import get_cas_details
 import random, time
 
 gasera_bp = Blueprint("gasera", __name__)
-
-# Device setup (customize IP/port)
-measurement = MeasurementController(gasera)
-measurement.launch_tick_loop()
-dispatcher = GaseraCommandDispatcher(gasera)
-
-from system.preferences import prefs, KEY_MEASUREMENT_DURATION
-prefs.register_callback(KEY_MEASUREMENT_DURATION, measurement.set_timeout)
 
 @gasera_bp.route("/command_map.js")
 def serve_command_map():
