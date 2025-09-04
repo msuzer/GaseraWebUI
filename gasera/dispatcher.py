@@ -1,4 +1,5 @@
 from .commands import GASERA_COMMANDS
+from .controller import gasera
 import system.log_utils as log
 
 class GaseraCommandDispatcher:
@@ -10,7 +11,7 @@ class GaseraCommandDispatcher:
             return {"error": msg}
         try:
             handler = GASERA_COMMANDS[command]["handler"]
-            result = handler(self.gasera, args)
+            result = handler(gasera, args)
             log.verbose(f"Executed command '{command}', result: {result}", sound = "ok")
             return self._wrap(result)
         except Exception as e:

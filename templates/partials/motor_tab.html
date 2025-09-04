@@ -7,16 +7,16 @@
                 <div class="btn-group mb-3" role="group">
                     <button type="button" class="btn btn-primary"
                             onpointerdown="startJog(0, 'cw')"
-                            onpointerup="stopJog(0)"
-                            onpointerleave="stopJog(0)"
-                            onpointercancel="stopJog(0)"
+                            onpointerup="stopJog()"
+                            onpointerleave="stopJog()"
+                            onpointercancel="stopJog()"
                             style="touch-action: none;">CW</button>
 
                     <button type="button" class="btn btn-secondary"
                             onpointerdown="startJog(0, 'ccw')"
-                            onpointerup="stopJog(0)"
-                            onpointerleave="stopJog(0)"
-                            onpointercancel="stopJog(0)"
+                            onpointerup="stopJog()"
+                            onpointerleave="stopJog()"
+                            onpointercancel="stopJog()"
                             style="touch-action: none;">CCW</button>
                 </div>
             </div>
@@ -31,16 +31,16 @@
                 <div class="btn-group mb-3" role="group">
                     <button type="button" class="btn btn-primary"
                             onpointerdown="startJog(1, 'cw')"
-                            onpointerup="stopJog(1)"
-                            onpointerleave="stopJog(1)"
-                            onpointercancel="stopJog(1)"
+                            onpointerup="stopJog()"
+                            onpointerleave="stopJog()"
+                            onpointercancel="stopJog()"
                             style="touch-action: none;">CW</button>
 
                     <button type="button" class="btn btn-secondary"
                             onpointerdown="startJog(1, 'ccw')"
-                            onpointerup="stopJog(1)"
-                            onpointerleave="stopJog(1)"
-                            onpointercancel="stopJog(1)"
+                            onpointerup="stopJog()"
+                            onpointerleave="stopJog()"
+                            onpointercancel="stopJog()"
                             style="touch-action: none;">CCW</button>
                 </div>
             </div>
@@ -49,12 +49,7 @@
 </div>
 
 <script>
-  /*
-    This file assumes you already have:
-      - function jog(motorId, direction, action) { ... }  // action: 'start' | 'stop'
-      - function updateMotorStatus() { ... }               // refresh status text/labels
-    If they exist elsewhere, we just call them from the wrappers below.
-  */
+  let activeJog = null; // { motorId, direction }
 
   // prevent iOS blue highlight (optional)
   try {
@@ -63,33 +58,47 @@
     document.head.appendChild(style);
   } catch {}
 
-  let activeJog = null; // { motorId, direction }
+  // Utility: validate params (optional but helpful during dev)
+  function assertParams(motorId, direction, action) {
+    if (motorId !== 0 && motorId !== 1) throw new Error(`Invalid motorId: ${motorId}`);
+    if (direction !== 'cw' && direction !== 'ccw') throw new Error(`Invalid direction: ${direction}`);
+    if (action !== 'start' && action !== 'stop') throw new Error(`Invalid action: ${action}`);
+  }
 
   function startJog(motorId, direction) {
-    // if same jog already active, do nothing
-    if (activeJog && activeJog.motorId === motorId && activeJog.direction === direction) return;
-
-    // stop any ongoing jog first
-    if (activeJog) stopJog(motorId);
-
-    activeJog = { motorId, direction };
     try {
+      // If same jog already active, ignore
+      if (activeJog && activeJog.motorId === motorId && activeJog.direction === direction) return;
+
+      // Stop whatever is currently active (if any), regardless of motor
+      stopJog(); // no args, uses activeJog
+
+      activeJog = { motorId, direction };
+
       if (typeof jog === 'function') {
+        // assertParams(motorId, direction, 'start'); // uncomment during dev if useful
         jog(motorId, direction, 'start');
       } else {
         console.warn('jog() is not defined; implement jog(motorId, direction, action).');
       }
     } catch (e) {
       console.error('Failed to start jog:', e);
+      // Fail safe: clear the state if start failed
+      activeJog = null;
     }
   }
 
-  function stopJog(motorId) {
-    if (!activeJog && activeJog.motorId === motorId) return;
+  function stopJog() {
+    // Idempotent: safe to call many times
+    if (!activeJog) return;
+
+    const { motorId, direction } = activeJog;
     activeJog = null;
+
     try {
       if (typeof jog === 'function') {
-        jog(motorId, 'cw', 'stop');
+        // assertParams(motorId, direction, 'stop'); // uncomment during dev if useful
+        jog(motorId, direction, 'stop');
       } else {
         console.warn('jog() is not defined; implement jog(motorId, direction, action).');
       }
@@ -98,13 +107,13 @@
     }
   }
 
-  // Global safety: make sure we stop on any "finger up" / cancel / tab switch
-  // window.addEventListener('pointerup', stopJog, { passive: true });
-  // window.addEventListener('pointercancel', stopJog, { passive: true });
-  // window.addEventListener('blur', stopJog);
-  // document.addEventListener('visibilitychange', () => {
-  //  if (document.hidden) stopJog();
-  // });
+  // Global safety: stop if the pointer is released outside, user alt-tabs, etc.
+  window.addEventListener('pointerup',  () => stopJog(), { passive: true });
+  window.addEventListener('pointercancel', () => stopJog(), { passive: true });
+  window.addEventListener('blur', () => stopJog());
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopJog();
+  });
 </script>
 
 <script>
