@@ -12,10 +12,26 @@ fi
 echo "🔄 Updating deployed code in $APP_DIR..."
 cd "$APP_DIR"
 
-echo "Resetting local changes..."
-git reset --hard
+echo "📍 Switching to main branch..."
+git checkout main || {
+  echo "❌ Failed to checkout main!"
+  exit 1
+}
 
-echo "Pulling latest from origin/main..."
+# Fetch latest from remote
+echo "📡 Fetching latest from GitHub..."
+git fetch --all
+
+# Fully reset local branch to match origin
+echo "🧹 Resetting local changes and history..."
+git reset --hard origin/main
+
+# Optional: clean untracked files and folders
+echo "🧼 Removing untracked files..."
+git clean -fd
+
+# Pull (not strictly necessary after reset, but kept as safety)
+echo "⬇️ Pulling latest from origin/main..."
 git pull --ff-only origin main || {
   echo "❌ Git pull failed!"
   exit 1
