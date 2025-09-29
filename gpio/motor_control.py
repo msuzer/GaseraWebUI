@@ -5,14 +5,14 @@ from system.preferences import prefs, KEY_MOTOR_TIMEOUT
 from config.constants import (
     DEBOUNCE_INTERVAL,
     DEFAULT_MOTOR_TIMEOUT,
-    BUTTON0_PIN, BUTTON1_PIN,
-    BUTTON2_PIN, BUTTON3_PIN,
     MOTOR0_CW_PIN, MOTOR0_CCW_PIN,
     MOTOR1_CW_PIN, MOTOR1_CCW_PIN,
-    MOTOR0_LIMIT_PIN, MOTOR1_LIMIT_PIN
+    BOARD_IN1_PIN, BOARD_IN2_PIN,
+    BOARD_IN3_PIN, BOARD_IN4_PIN,
+    BOARD_IN5_PIN, BOARD_IN6_PIN
 )
 
-BUTTONS = [BUTTON0_PIN, BUTTON1_PIN, BUTTON2_PIN, BUTTON3_PIN]
+BUTTONS = [BOARD_IN1_PIN, BOARD_IN2_PIN, BOARD_IN3_PIN, BOARD_IN4_PIN]
 
 class MotorController:
     def __init__(self):
@@ -24,8 +24,8 @@ class MotorController:
             "motor1_ccw": MOTOR1_CCW_PIN,
         }
         self.limit_switches = {
-            "0": MOTOR0_LIMIT_PIN,
-            "1": MOTOR1_LIMIT_PIN,
+            "0": BOARD_IN5_PIN,
+            "1": BOARD_IN6_PIN,
         }
         self._state = {
             "0": {"status": "idle", "direction": None},
@@ -42,16 +42,6 @@ class MotorController:
     def get_timeout(self):
         return self.timeout_sec
 
-    def is_limit_hit(self, motor_id, direction):
-        pin = self.limit_switches.get(motor_id)
-        if not pin:
-            return False
-        if motor_id == "0" and direction == "cw" and gpio.read(pin) == 0:
-            return True
-        if motor_id == "1" and direction == "ccw" and gpio.read(pin) == 0:
-            return True
-        return False
-
     def start(self, motor_id: str, direction: str):
         lock = self._lock[motor_id]
         with lock:
@@ -63,10 +53,7 @@ class MotorController:
             if key not in self.pins:
                 raise ValueError("Invalid motor or direction")
 
-            if self.is_limit_hit(motor_id, direction):
-                print(f"[LIMIT] Motor {motor_id} {direction.upper()} blocked by limit switch.")
-                self._state[motor_id] = {"status": "limit", "direction": direction}
-                return
+            # Do not check limit switch before starting (!)
 
             self.stop(motor_id)
 
@@ -97,29 +84,27 @@ class MotorController:
         self.stop("1")
 
     def _monitor(self, motor_id: str, direction: str):
-        pin = self.limit_switches.get(motor_id)
+        time.sleep(1.0)  # Allow motor to escape limit zone (reverse direction)
+
         start = time.time()
         while time.time() - start < self.timeout_sec:
-            if gpio.read(pin) == 0:
+            if self._state[motor_id]["status"] != "moving":
+                return
+
+            if self._debounce_limits().get(motor_id) == 0:
                 self.stop(motor_id)
                 self._state[motor_id] = {"status": "limit", "direction": direction}
                 return
-            if self._state[motor_id]["status"] != "moving":
-                return
+
             time.sleep(0.1)
         self.stop(motor_id)
         self._state[motor_id] = {"status": "timeout", "direction": direction}
 
-    def status(self, motor_id: str) -> str:
-        state = self._state.get(motor_id)
-        if not state:
-            return "unknown"
-        status = state["status"]
-        direction = state["direction"]
-        return f"{status} {direction}" if direction else status
-
-    def state(self, motor_id: str) -> dict:
-        return self._state.get(motor_id, {"status": "unknown", "direction": None})
+    def state(self, motor_id: str, as_string=False):
+        s = self._state.get(motor_id, {"status": "unknown", "direction": None})
+        if as_string:
+            return f"{s['status']} {s['direction']}" if s["direction"] else s["status"]
+        return s
 
     def is_done(self, motor_id: str) -> bool:
         return self._state[motor_id]["status"] in ["limit", "timeout", "user_stop", "idle"]
@@ -127,9 +112,33 @@ class MotorController:
     def are_both_done(self) -> bool:
         return self.is_done("0") and self.is_done("1")
     
-        # --- buttons → motors (debounced) ---
+    # --- buttons → motors (debounced) ---
 
-    def _debounce_snapshot(self):
+    def _debounce_limits(self):
+        """Return stable {motor_id: level} for limit switches (0=active, 1=inactive)."""
+        now_ms = time.time() * 1000.0
+
+        if not hasattr(self, "_last_limit_state"):
+            self._last_limit_state = {"0": 1, "1": 1}
+            self._last_limit_change = {"0": 0, "1": 0}
+
+        stable = self._last_limit_state.copy()
+
+        for motor_id, pin in self.limit_switches.items():
+            raw = gpio.read(pin)  # 0=hit, 1=clear
+            if raw != self._last_limit_state[motor_id]:
+                if self._last_limit_change[motor_id] == 0:
+                    self._last_limit_change[motor_id] = now_ms
+                elif now_ms - self._last_limit_change[motor_id] >= DEBOUNCE_INTERVAL:
+                    self._last_limit_state[motor_id] = raw
+                    stable[motor_id] = raw
+                    self._last_limit_change[motor_id] = 0
+            else:
+                self._last_limit_change[motor_id] = 0
+
+        return stable
+
+    def _debounce_buttons(self):
         """Return stable [b0,b1,b2,b3] (0=pressed, 1=released) using DEBOUNCE_INTERVAL (ms)."""
         now_ms = time.time() * 1000.0
         stable = self._last_state[:]  # start with last known stable
@@ -154,7 +163,7 @@ class MotorController:
     def on_button_edge(self):
         """Edge-triggered button handling (called periodically)."""
         prev_state = self._last_state[:]
-        stable = self._debounce_snapshot()
+        stable = self._debounce_buttons()
 
         for i in range(4):
             if stable[i] != prev_state[i]:

@@ -1,21 +1,23 @@
 # gasera/constants.py
 
-TRIGGER_PIN = "PC10" # "PC1"
+# PC14 and PC15 starts as inputs upon boot up, thus outputting HIGH, do not use them as output pins.
+# PI16 works on armbian but marked as 'used' on debian bookworm, do not use it.
+
 BUZZER_PIN = "PH2"
 
 MOTOR0_CW_PIN = "PH3"
 MOTOR0_CCW_PIN = "PC11"
-MOTOR1_CW_PIN = "PC5" # "PC15"
-MOTOR1_CCW_PIN = "PC8" # "PC14"
+MOTOR1_CW_PIN = "PC5"
+MOTOR1_CCW_PIN = "PC8"
 
-BUTTON0_PIN = "PC15"
-BUTTON1_PIN = "PC14"
-BUTTON2_PIN = "PH8"
-BUTTON3_PIN = "PC7"
+BOARD_IN1_PIN = "PC15"
+BOARD_IN2_PIN = "PC14"
+BOARD_IN3_PIN = "PH8"
+BOARD_IN4_PIN = "PC7"
+BOARD_IN5_PIN = "PH6"
+BOARD_IN6_PIN = "PH9"
 
-MOTOR0_LIMIT_PIN = "PH6" # "PI6"
-MOTOR1_LIMIT_PIN = "PH9" # "PC8"
-# MOTOR1_LIMIT_PIN = "PI16" # PI16 works on armbian but marked as 'used' on debian bookworm, so switching to PC8
+TRIGGER_PIN = "PC10"
 
 DEFAULT_MEASUREMENT_DURATION = 600
 DEBOUNCE_INTERVAL = 0.2 # seconds
