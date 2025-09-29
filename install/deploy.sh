@@ -27,8 +27,8 @@ fi
 echo "[1/10] Update & install packages..."
 apt update
 apt install -y isc-dhcp-server nginx python3 gpiod python3-pip python3-flask python3-waitress \
-               python3-netifaces python3-libgpiod python3-psutil git network-manager hostapd \
-               dnsmasq curl net-tools socat dos2unix
+               python3-netifaces python3-libgpiod python3-psutil python3-luma.oled python3-requests \
+               git network-manager hostapd dnsmasq curl net-tools socat dos2unix
 
 echo "[2/10] Avoid DHCP conflicts: disable dnsmasq..."
 systemctl disable --now dnsmasq 2>/dev/null || true
@@ -60,14 +60,22 @@ ln -sf /etc/nginx/sites-available/gasera.conf /etc/nginx/sites-enabled/gasera.co
 rm -f /etc/nginx/sites-enabled/default
 systemctl restart nginx
 
-echo "[6/10] GPIO udev + permissions..."
+echo "[6/10] GPIO + I2C udev + permissions..."
 cp "$APP_DIR/install/99-gpio.rules" /etc/udev/rules.d/99-gpio.rules
+# Ensure groups exist
 groupadd -f gpio
+groupadd -f i2c
+# Add Flask/web user to both groups
 usermod -aG gpio www-data
+usermod -aG i2c www-data
 udevadm control --reload-rules
 udevadm trigger
+# Adjust existing device nodes
 chown root:gpio /dev/gpiochip* 2>/dev/null || true
 chmod 660 /dev/gpiochip* 2>/dev/null || true
+
+chown root:i2c /dev/i2c-* 2>/dev/null || true
+chmod 660 /dev/i2c-* 2>/dev/null || true
 
 echo "[7/10] NetworkManager: set ${IFACE} to ${LAN_ADDR} (gasera-dhcp)..."
 if nmcli -t -f NAME con show | grep -qx "gasera-dhcp"; then

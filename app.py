@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 import system.log_utils as log
+from oled.display import start_oled_thread
 
 log.info("starting service", version="1.0.0", sound="power_on")
 
@@ -12,6 +13,9 @@ from gasera.routes import gasera_bp
 app.register_blueprint(gasera_bp, url_prefix="/gasera")
 app.register_blueprint(system_bp, url_prefix="/system")
 app.register_blueprint(gpio_bp, url_prefix="/gpio")
+
+# start OLED monitor in background
+start_oled_thread()
 
 @app.route('/')
 def index():

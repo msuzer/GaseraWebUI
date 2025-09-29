@@ -23,11 +23,16 @@ rm -f /etc/nginx/sites-enabled/gasera.conf
 rm -f /etc/nginx/sites-available/gasera.conf
 systemctl restart nginx || true
 
-echo "[4/8] Remove GPIO udev rule & revert perms..."
+echo "[4/8] Remove GPIO/I2C udev rule & revert perms..."
 rm -f /etc/udev/rules.d/99-gpio.rules
 udevadm control --reload-rules
 udevadm trigger
+
 for dev in /dev/gpiochip*; do
+  [ -e "$dev" ] && chmod 600 "$dev" && chown root:root "$dev"
+done
+
+for dev in /dev/i2c-*; do
   [ -e "$dev" ] && chmod 600 "$dev" && chown root:root "$dev"
 done
 
